@@ -1,0 +1,48 @@
+# ===============================
+# Server
+# ===============================
+server.port=8080
+
+# ===============================
+# MySQL Database Configuration
+# Make sure MySQL is running and the database exists:
+#   CREATE DATABASE hostel_management_db;
+# ===============================
+spring.datasource.url=jdbc:mysql://localhost:3307/hostel_management_db?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
+spring.datasource.username=root
+spring.datasource.password=root
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# ===============================
+# To test WITHOUT installing MySQL, comment the 4 lines above
+# and uncomment the H2 in-memory database lines below instead:
+# ===============================
+# spring.datasource.url=jdbc:h2:mem:hosteldb;DB_CLOSE_DELAY=-1
+# spring.datasource.driver-class-name=org.h2.Driver
+# spring.datasource.username=sa
+# spring.datasource.password=
+# spring.h2.console.enabled=true
+# spring.h2.console.path=/h2-console
+
+# ===============================
+# JPA / Hibernate
+# ===============================
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+# open-in-view=true keeps the DB session open through JSON serialization so related
+# entities (e.g. a Booking's Room and Student) can be lazily loaded when returned in a response.
+spring.jpa.open-in-view=true
+
+# ===============================
+# JWT Configuration
+# IMPORTANT: change app.jwt.secret before deploying to production.
+# Must be at least 32 characters long (HS256 requirement).
+# ===============================
+app.jwt.secret=ChangeThisSecretKeyToSomethingLongAndRandom123456
+app.jwt.expiration-ms=86400000
+
+# ===============================
+# Jackson
+# ===============================
+spring.jackson.serialization.write-dates-as-timestamps=false
