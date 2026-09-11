@@ -8,7 +8,7 @@ import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
 import { EmptyState } from '../../components/feedback/EmptyState';
 import { Users, Search, Eye } from 'lucide-react';
 
-export const UserManagement = () => {
+export const UserManagement = ({ isWarden = false }) => {
   const { success: toastSuccess, error: toastError } = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +33,7 @@ export const UserManagement = () => {
   }, []);
 
   const handleToggleStatus = async (user) => {
+    if (isWarden) return;
     const nextStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     try {
       await api.put(`/users/${user.id}/status`, { status: nextStatus });
@@ -60,9 +61,9 @@ export const UserManagement = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>User & Student Directory</h2>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{isWarden ? 'Student & Resident Directory' : 'User & Student Directory'}</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-          Inspect user accounts, student contact profiles, roles, and authorization status.
+          {isWarden ? 'Inspect student resident profiles, emergency contact details, and account statuses.' : 'Inspect user accounts, student contact profiles, roles, and authorization status.'}
         </p>
       </div>
 
@@ -97,6 +98,7 @@ export const UserManagement = () => {
         >
           <option value="ALL">All Roles</option>
           <option value="ADMIN">Administrators</option>
+          <option value="WARDEN">Hostel Warden</option>
           <option value="USER">Students (USER)</option>
         </select>
       </div>
@@ -127,7 +129,7 @@ export const UserManagement = () => {
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{u.email}</div>
                   </td>
                   <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>@{u.username}</td>
-                  <td><Badge status={u.role}>{u.role === 'ADMIN' ? 'ADMINISTRATOR' : 'STUDENT'}</Badge></td>
+                  <td><Badge status={u.role}>{u.role === 'ADMIN' ? 'ADMINISTRATOR' : u.role === 'WARDEN' ? 'WARDEN' : 'STUDENT'}</Badge></td>
                   <td>{u.mobileNumber}</td>
                   <td><Badge status={u.status || 'ACTIVE'} /></td>
                   <td>{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}</td>
@@ -136,7 +138,7 @@ export const UserManagement = () => {
                       <Button variant="ghost" size="sm" icon={Eye} onClick={() => setSelectedUser(u)}>
                         View
                       </Button>
-                      {u.role !== 'ADMIN' && (
+                      {!isWarden && u.role !== 'ADMIN' && u.role !== 'WARDEN' && (
                         <Button
                           variant={u.status === 'ACTIVE' ? 'outlineDanger' : 'secondary'}
                           size="sm"

@@ -37,6 +37,23 @@ public class DataSeeder implements CommandLineRunner {
             userRepository.save(admin);
         }
 
+        // Creates the single default hostel warden account if it does not already exist
+        if (!userRepository.existsByUsername("Warden") && !userRepository.existsByEmail("warden@hostel.com")) {
+            User warden = User.builder()
+                    .fullName("Chief Hostel Warden")
+                    .username("Warden")
+                    .email("warden@hostel.com")
+                    .mobileNumber("9888888888")
+                    .password(passwordEncoder.encode("Warden123"))
+                    .role(Role.WARDEN)
+                    .gender("Other")
+                    .address("Hostel Warden Office, Ground Floor")
+                    .status("ACTIVE")
+                    .enabled(true)
+                    .build();
+            userRepository.save(warden);
+        }
+
         // Seed initial room inventory if database is empty
         if (roomRepository.count() == 0) {
             roomRepository.save(Room.builder().roomNumber("A-101").roomType(Room.RoomType.SINGLE).capacity(1).occupied(0).pricePerMonth(8000.0).status(Room.RoomStatus.AVAILABLE).build());

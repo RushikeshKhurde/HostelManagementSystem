@@ -170,7 +170,7 @@ export const Home = () => {
                 <UserIcon size={16} /> My Profile ({user.fullName?.split(' ')[0]})
               </Link>
               <Link
-                to={user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard'}
+                to={user.role === 'ADMIN' ? '/admin/dashboard' : user.role === 'WARDEN' ? '/warden/dashboard' : '/student/dashboard'}
                 className="btn btn-primary btn-sm"
               >
                 Dashboard <ArrowRight size={16} />
@@ -246,10 +246,10 @@ export const Home = () => {
             {user ? (
               <>
                 <Link
-                  to={user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard'}
+                  to={user.role === 'ADMIN' ? '/admin/dashboard' : user.role === 'WARDEN' ? '/warden/dashboard' : '/student/dashboard'}
                   className="btn btn-primary btn-lg"
                 >
-                  Go to {user.role === 'ADMIN' ? 'Admin Dashboard' : 'Student Dashboard'} <ArrowRight size={18} />
+                  Go to {user.role === 'ADMIN' ? 'Admin Dashboard' : user.role === 'WARDEN' ? 'Warden Dashboard' : 'Student Dashboard'} <ArrowRight size={18} />
                 </Link>
                 <Link
                   to="/profile"

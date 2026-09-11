@@ -30,6 +30,9 @@ import { MyComplaints } from './pages/student/MyComplaints';
 import { MyLeave } from './pages/student/MyLeave';
 import { StudentNotices } from './pages/student/StudentNotices';
 
+// Warden Pages
+import { WardenDashboard } from './pages/warden/WardenDashboard';
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -64,6 +67,17 @@ export default function App() {
                   <Route path="/student/complaints" element={<MyComplaints />} />
                   <Route path="/student/leaves" element={<MyLeave />} />
                   <Route path="/student/notices" element={<StudentNotices />} />
+                </Route>
+
+                {/* Warden Routes */}
+                <Route element={<ProtectedRoute allowedRole="WARDEN" />}>
+                  <Route path="/warden/dashboard" element={<WardenDashboard />} />
+                  <Route path="/warden/students" element={<UserManagement isWarden />} />
+                  <Route path="/warden/rooms" element={<RoomManagement isWarden />} />
+                  <Route path="/warden/bookings" element={<BookingManagement isWarden />} />
+                  <Route path="/warden/leaves" element={<LeaveManagement />} />
+                  <Route path="/warden/complaints" element={<ComplaintManagement />} />
+                  <Route path="/warden/notices" element={<NoticeManagement />} />
                 </Route>
 
                 {/* Shared Protected Route */}

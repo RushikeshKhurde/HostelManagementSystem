@@ -67,7 +67,26 @@ export const Sidebar = ({ isOpen, onClose }) => {
     ]},
   ];
 
-  const navSections = user?.role === 'ADMIN' ? adminNav : studentNav;
+  const wardenNav = [
+    { label: 'Overview', items: [
+      { to: '/warden/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    ]},
+    { label: 'Hostel Operations', items: [
+      { to: '/warden/students', icon: Users, label: 'Student Directory' },
+      { to: '/warden/rooms', icon: Bed, label: 'Room Occupancy' },
+      { to: '/warden/bookings', icon: BookmarkCheck, label: 'Bookings Log' },
+    ]},
+    { label: 'Student Services', items: [
+      { to: '/warden/leaves', icon: CalendarDays, label: 'Leave Requests' },
+      { to: '/warden/complaints', icon: MessageSquareWarning, label: 'Complaints' },
+      { to: '/warden/notices', icon: Bell, label: 'Notice Board' },
+    ]},
+    { label: 'Account', items: [
+      { to: '/profile', icon: User, label: 'My Profile' },
+    ]},
+  ];
+
+  const navSections = user?.role === 'ADMIN' ? adminNav : user?.role === 'WARDEN' ? wardenNav : studentNav;
 
   return (
     <>

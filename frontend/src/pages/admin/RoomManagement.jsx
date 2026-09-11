@@ -11,7 +11,7 @@ import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
 import { EmptyState } from '../../components/feedback/EmptyState';
 import { Plus, Search, Filter, Trash2, Edit, Bed, LayoutGrid, List } from 'lucide-react';
 
-export const RoomManagement = () => {
+export const RoomManagement = ({ isWarden = false }) => {
   const { success: toastSuccess, error: toastError } = useToast();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +53,7 @@ export const RoomManagement = () => {
   }, []);
 
   const handleOpenAdd = () => {
+    if (isWarden) return;
     setEditingRoom(null);
     setFormData({
       roomNumber: '',
@@ -65,6 +66,7 @@ export const RoomManagement = () => {
   };
 
   const handleOpenEdit = (room) => {
+    if (isWarden) return;
     setEditingRoom(room);
     setFormData({
       roomNumber: room.roomNumber,
@@ -78,6 +80,7 @@ export const RoomManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isWarden) return;
     setModalLoading(true);
     try {
       if (editingRoom) {
@@ -97,11 +100,11 @@ export const RoomManagement = () => {
   };
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || isWarden) return;
     setDeleteLoading(true);
     try {
       await api.delete(`/rooms/${deleteTarget.id}`);
-      toastSuccess(`Room ${deleteTarget.roomNumber} deleted.`);
+      toastSuccess(`Room ${deleteTarget.roomNumber} removed.`);
       setDeleteTarget(null);
       fetchRooms();
     } catch (err) {
@@ -112,7 +115,8 @@ export const RoomManagement = () => {
   };
 
   const filteredRooms = rooms.filter((r) => {
-    const matchesSearch = r.roomNumber.toLowerCase().includes(search.toLowerCase());
+    const num = r.roomNumber || '';
+    const matchesSearch = num.toLowerCase().includes(search.toLowerCase());
     const matchesType = filterType === 'ALL' || r.roomType === filterType;
     const matchesStatus = filterStatus === 'ALL' || r.status === filterStatus;
     return matchesSearch && matchesType && matchesStatus;
@@ -123,14 +127,16 @@ export const RoomManagement = () => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Room & Hostel Inventory</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{isWarden ? 'Hostel Room Inventory & Occupancy' : 'Rooms & Occupancy Management'}</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            Manage room capacities, pricing, maintenance status, and allocations.
+            {isWarden ? 'Monitor real-time room capacity, bed allocations, and availability.' : 'Configure room inventory, set monthly rents, and track occupancy levels.'}
           </p>
         </div>
-        <Button variant="primary" icon={Plus} onClick={handleOpenAdd}>
-          Add New Room
-        </Button>
+        {!isWarden && (
+          <Button variant="primary" icon={Plus} onClick={handleOpenAdd}>
+            Add New Room
+          </Button>
+        )}
       </div>
 
       {/* Filter & Search Bar */}
@@ -252,14 +258,16 @@ export const RoomManagement = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
-                <Button variant="secondary" size="sm" icon={Edit} onClick={() => handleOpenEdit(room)} style={{ flex: 1 }}>
-                  Edit
-                </Button>
-                <Button variant="outlineDanger" size="sm" icon={Trash2} onClick={() => setDeleteTarget(room)}>
-                  Delete
-                </Button>
-              </div>
+              {!isWarden && (
+                <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
+                  <Button variant="secondary" size="sm" icon={Edit} onClick={() => handleOpenEdit(room)} style={{ flex: 1 }}>
+                    Edit
+                  </Button>
+                  <Button variant="outlineDanger" size="sm" icon={Trash2} onClick={() => setDeleteTarget(room)}>
+                    Delete
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -274,7 +282,7 @@ export const RoomManagement = () => {
                 <th>Occupied</th>
                 <th>Monthly Rent</th>
                 <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                {!isWarden && <th style={{ textAlign: 'right' }}>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -286,16 +294,18 @@ export const RoomManagement = () => {
                   <td>{room.occupied || 0} Beds</td>
                   <td style={{ fontWeight: 600 }}>₹{room.pricePerMonth?.toLocaleString('en-IN')}</td>
                   <td><Badge status={room.status} /></td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                      <button className="btn btn-ghost btn-sm" onClick={() => handleOpenEdit(room)}>
-                        <Edit size={16} />
-                      </button>
-                      <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setDeleteTarget(room)}>
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
+                  {!isWarden && (
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                        <button className="btn btn-ghost btn-sm" onClick={() => handleOpenEdit(room)}>
+                          <Edit size={16} />
+                        </button>
+                        <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setDeleteTarget(room)}>
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

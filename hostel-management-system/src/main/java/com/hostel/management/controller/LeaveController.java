@@ -33,13 +33,13 @@ public class LeaveController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'WARDEN')")
     public ResponseEntity<List<LeaveRequest>> getAllLeaves() {
         return ResponseEntity.ok(leaveService.getAllLeaves());
     }
 
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'WARDEN')")
     public ResponseEntity<LeaveRequest> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return ResponseEntity.ok(leaveService.updateStatus(id, body.get("status"), body.get("adminRemarks")));
     }

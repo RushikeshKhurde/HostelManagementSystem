@@ -25,6 +25,7 @@ public class DashboardController {
     private final PaymentRepository paymentRepository;
     private final ComplaintRepository complaintRepository;
     private final LeaveRequestRepository leaveRequestRepository;
+    private final NoticeRepository noticeRepository;
 
     @GetMapping("/stats")
     @PreAuthorize("hasRole('ADMIN')")
@@ -119,6 +120,43 @@ public class DashboardController {
         stats.put("totalLeaves", leaves.size());
         stats.put("pendingLeaves", leaves.stream().filter(l -> l.getStatus() == LeaveRequest.LeaveStatus.PENDING).count());
         stats.put("roommates", roommates);
+
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/warden-stats")
+    @PreAuthorize("hasAnyRole('ADMIN', 'WARDEN')")
+    public ResponseEntity<Map<String, Object>> getWardenStats() {
+        long totalStudents = userRepository.countByRole(Role.USER);
+        List<Room> rooms = roomRepository.findAll();
+        long totalRooms = rooms.size();
+        long occupiedRooms = rooms.stream().filter(r -> r.getOccupied() != null && r.getOccupied() > 0).count();
+        int totalCapacity = rooms.stream().mapToInt(r -> r.getCapacity() != null ? r.getCapacity() : 0).sum();
+        int occupiedBeds = rooms.stream().mapToInt(r -> r.getOccupied() != null ? r.getOccupied() : 0).sum();
+        int availableBeds = Math.max(0, totalCapacity - occupiedBeds);
+
+        List<Booking> bookings = bookingRepository.findAll();
+        long pendingBookings = bookings.stream().filter(b -> b.getStatus() == Booking.BookingStatus.PENDING).count();
+        long pendingComplaints = complaintRepository.countByStatus(Complaint.ComplaintStatus.PENDING);
+        long pendingLeaves = leaveRequestRepository.countByStatus(LeaveRequest.LeaveStatus.PENDING);
+        long activeNotices = noticeRepository.count();
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalStudents", totalStudents);
+        stats.put("totalRooms", totalRooms);
+        stats.put("occupiedRooms", occupiedRooms);
+        stats.put("totalCapacity", totalCapacity);
+        stats.put("occupiedBeds", occupiedBeds);
+        stats.put("availableBeds", availableBeds);
+        stats.put("pendingBookings", pendingBookings);
+        stats.put("pendingComplaints", pendingComplaints);
+        stats.put("pendingLeaves", pendingLeaves);
+        stats.put("activeNotices", activeNotices);
+
+        // Breakdown by room type for operational planning
+        Map<String, Long> roomTypeCounts = rooms.stream()
+                .collect(Collectors.groupingBy(r -> r.getRoomType().name(), Collectors.counting()));
+        stats.put("roomTypeDistribution", roomTypeCounts);
 
         return ResponseEntity.ok(stats);
     }

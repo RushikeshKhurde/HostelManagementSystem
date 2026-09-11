@@ -33,6 +33,14 @@ public class AuthService {
         String email = request.getEmail().trim().toLowerCase();
         String mobile = request.getMobileNumber().trim();
 
+        if ("warden".equalsIgnoreCase(username) || "admin".equalsIgnoreCase(username)) {
+            throw new ApiException("Username '" + username + "' is reserved for system administration", HttpStatus.BAD_REQUEST);
+        }
+
+        if (request.getRole() != null && ("WARDEN".equalsIgnoreCase(request.getRole()) || "ADMIN".equalsIgnoreCase(request.getRole()))) {
+            throw new ApiException("Public registration cannot assign administrative roles", HttpStatus.BAD_REQUEST);
+        }
+
         if (userRepository.existsByUsername(username)) {
             throw new ApiException("Username '" + username + "' is already taken", HttpStatus.CONFLICT);
         }
@@ -51,7 +59,7 @@ public class AuthService {
             throw new ApiException("Date of birth cannot be a future date", HttpStatus.BAD_REQUEST);
         }
 
-        // Public registration ALWAYS assigns role USER. Even if role is provided, it is strictly ignored.
+        // Public registration ALWAYS assigns role USER.
         Role role = Role.USER;
 
         User user = User.builder()

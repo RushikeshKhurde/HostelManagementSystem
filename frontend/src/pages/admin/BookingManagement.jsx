@@ -8,7 +8,7 @@ import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
 import { EmptyState } from '../../components/feedback/EmptyState';
 import { Check, X, CheckCircle, Clock, Search, BookmarkCheck } from 'lucide-react';
 
-export const BookingManagement = () => {
+export const BookingManagement = ({ isWarden = false }) => {
   const { success: toastSuccess, error: toastError } = useToast();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,9 +63,13 @@ export const BookingManagement = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Student Booking Requests</h2>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>
+          {isWarden ? 'Student Room Allocations & Bookings' : 'Student Booking Requests'}
+        </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-          Review, approve, or reject student room allocations.
+          {isWarden
+            ? 'Inspect student room allocations, check-in dates, and booking statuses.'
+            : 'Review, approve, or reject student room allocations.'}
         </p>
       </div>
 
@@ -126,7 +130,7 @@ export const BookingManagement = () => {
                 <th>Check-In Date</th>
                 <th>Monthly Rent</th>
                 <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                {!isWarden && <th style={{ textAlign: 'right' }}>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -145,47 +149,49 @@ export const BookingManagement = () => {
                   <td>{b.checkInDate}</td>
                   <td style={{ fontWeight: 600 }}>₹{b.room?.pricePerMonth?.toLocaleString('en-IN')}</td>
                   <td><Badge status={b.status} /></td>
-                  <td style={{ textAlign: 'right' }}>
-                    {b.status === 'PENDING' ? (
-                      <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          icon={Check}
-                          onClick={() => setActionTarget({ booking: b, status: 'APPROVED' })}
-                        >
-                          Approve
-                        </Button>
-                        <Button
-                          variant="outlineDanger"
-                          size="sm"
-                          icon={X}
-                          onClick={() => setActionTarget({ booking: b, status: 'REJECTED' })}
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    ) : b.status === 'APPROVED' ? (
-                      <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setActionTarget({ booking: b, status: 'COMPLETED' })}
-                        >
-                          Mark Done
-                        </Button>
-                        <Button
-                          variant="outlineDanger"
-                          size="sm"
-                          onClick={() => setActionTarget({ booking: b, status: 'CANCELLED' })}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>No actions</span>
-                    )}
-                  </td>
+                  {!isWarden && (
+                    <td style={{ textAlign: 'right' }}>
+                      {b.status === 'PENDING' ? (
+                        <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            icon={Check}
+                            onClick={() => setActionTarget({ booking: b, status: 'APPROVED' })}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            variant="outlineDanger"
+                            size="sm"
+                            icon={X}
+                            onClick={() => setActionTarget({ booking: b, status: 'REJECTED' })}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      ) : b.status === 'APPROVED' ? (
+                        <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setActionTarget({ booking: b, status: 'COMPLETED' })}
+                          >
+                            Mark Done
+                          </Button>
+                          <Button
+                            variant="outlineDanger"
+                            size="sm"
+                            onClick={() => setActionTarget({ booking: b, status: 'CANCELLED' })}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>No actions</span>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

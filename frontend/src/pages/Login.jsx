@@ -18,7 +18,8 @@ export const Login = () => {
 
   React.useEffect(() => {
     if (user) {
-      navigate(user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard', { replace: true });
+      const target = user.role === 'ADMIN' ? '/admin/dashboard' : user.role === 'WARDEN' ? '/warden/dashboard' : '/student/dashboard';
+      navigate(target, { replace: true });
     }
   }, [user, navigate]);
 
@@ -41,6 +42,8 @@ export const Login = () => {
       toastSuccess(`Welcome back, ${data.fullName}!`);
       if (data.role === 'ADMIN') {
         navigate('/admin/dashboard', { replace: true });
+      } else if (data.role === 'WARDEN') {
+        navigate('/warden/dashboard', { replace: true });
       } else {
         navigate('/student/dashboard', { replace: true });
       }

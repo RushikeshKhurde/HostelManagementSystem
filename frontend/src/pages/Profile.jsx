@@ -231,7 +231,7 @@ export const Profile = () => {
                 width: '68px',
                 height: '68px',
                 borderRadius: 'var(--radius-full)',
-                backgroundColor: user?.role === 'ADMIN' ? 'var(--primary)' : 'var(--accent)',
+                backgroundColor: user?.role === 'ADMIN' ? 'var(--primary)' : user?.role === 'WARDEN' ? '#0d9488' : 'var(--accent)',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
@@ -249,7 +249,7 @@ export const Profile = () => {
                 @{user?.username} · {user?.email}
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', alignItems: 'center' }}>
-                <Badge status={user?.role}>{user?.role === 'ADMIN' ? 'Administrator' : 'Student (USER)'}</Badge>
+                <Badge status={user?.role}>{user?.role === 'ADMIN' ? 'Administrator' : user?.role === 'WARDEN' ? 'Hostel Warden' : 'Student (USER)'}</Badge>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--success)', fontWeight: 600 }}>
                   <CheckCircle2 size={12} /> {user?.status || 'ACTIVE'}
                 </span>
@@ -295,7 +295,11 @@ export const Profile = () => {
                   <Shield size={14} /> Role Permissions
                 </div>
                 <div style={{ fontSize: '1rem', fontWeight: 700 }}>
-                  {user?.role === 'ADMIN' ? 'Full Administrator Access' : 'Standard Student Portal'}
+                  {user?.role === 'ADMIN'
+                    ? 'Full Administrator Access'
+                    : user?.role === 'WARDEN'
+                    ? 'Hostel Warden Operations'
+                    : 'Standard Student Portal'}
                 </div>
               </div>
 

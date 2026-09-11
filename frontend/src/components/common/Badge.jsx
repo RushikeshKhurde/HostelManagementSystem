@@ -18,6 +18,7 @@ export const Badge = ({ children, status = 'neutral', className = '' }) => {
     // Roles
     ADMIN: 'badge-info',
     USER: 'badge-neutral',
+    WARDEN: 'badge-accent',
     // Status
     ACTIVE: 'badge-success',
     INACTIVE: 'badge-danger',

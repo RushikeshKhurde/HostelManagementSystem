@@ -88,7 +88,7 @@ export const Navbar = ({ onToggleSidebar, title }) => {
                 width: '36px',
                 height: '36px',
                 borderRadius: 'var(--radius-full)',
-                backgroundColor: user?.role === 'ADMIN' ? 'var(--primary)' : 'var(--accent)',
+                backgroundColor: user?.role === 'ADMIN' ? 'var(--primary)' : user?.role === 'WARDEN' ? '#7c3aed' : 'var(--accent)',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
@@ -104,7 +104,7 @@ export const Navbar = ({ onToggleSidebar, title }) => {
                 {user?.fullName || 'User'}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                {user?.role === 'ADMIN' ? 'Administrator' : 'Student'}
+                {user?.role === 'ADMIN' ? 'Administrator' : user?.role === 'WARDEN' ? 'Hostel Warden' : 'Student'}
               </div>
             </div>
           </button>
@@ -134,10 +134,10 @@ export const Navbar = ({ onToggleSidebar, title }) => {
                   <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{user?.fullName}</div>
                   <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{user?.email}</div>
                   <span
-                    className={`badge ${user?.role === 'ADMIN' ? 'badge-info' : 'badge-neutral'}`}
-                    style={{ marginTop: '0.375rem' }}
+                    className={`badge ${user?.role === 'ADMIN' ? 'badge-info' : user?.role === 'WARDEN' ? 'badge-accent' : 'badge-neutral'}`}
+                    style={{ marginTop: '0.375rem', backgroundColor: user?.role === 'WARDEN' ? '#7c3aed' : undefined, color: user?.role === 'WARDEN' ? '#fff' : undefined }}
                   >
-                    {user?.role === 'ADMIN' ? 'Administrator' : 'Student'}
+                    {user?.role === 'ADMIN' ? 'Administrator' : user?.role === 'WARDEN' ? 'Hostel Warden' : 'Student'}
                   </span>
                 </div>
 

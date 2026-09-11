@@ -22,8 +22,17 @@ export const ProtectedRoute = ({ allowedRole }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRole && user.role !== allowedRole) {
-    return <Navigate to={user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard'} replace />;
+  const isRoleAllowed = () => {
+    if (!allowedRole) return true;
+    if (Array.isArray(allowedRole)) {
+      return allowedRole.includes(user?.role);
+    }
+    return user?.role === allowedRole;
+  };
+
+  if (!isRoleAllowed()) {
+    const fallback = user?.role === 'ADMIN' ? '/admin/dashboard' : user?.role === 'WARDEN' ? '/warden/dashboard' : '/student/dashboard';
+    return <Navigate to={fallback} replace />;
   }
 
   return (
