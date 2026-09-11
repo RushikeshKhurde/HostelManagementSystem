@@ -21,24 +21,35 @@ public class BookingService {
     private final RoomRepository roomRepository;
 
     public Booking createBooking(User student, BookingRequest request) {
-        Room room = roomRepository.findById(request.getRoomId())
-                .orElseThrow(() -> new ApiException("Room not found", HttpStatus.NOT_FOUND));
+        synchronized (("booking-user-lock-" + student.getId()).intern()) {
+            List<Booking.BookingStatus> activeStatuses = List.of(
+                    Booking.BookingStatus.PENDING,
+                    Booking.BookingStatus.APPROVED
+            );
+            boolean hasActiveBooking = bookingRepository.existsByStudentIdAndStatusIn(student.getId(), activeStatuses);
+            if (hasActiveBooking) {
+                throw new ApiException("You already have an active room booking. You cannot book another room.", HttpStatus.CONFLICT);
+            }
 
-        if (room.getStatus() == Room.RoomStatus.MAINTENANCE) {
-            throw new ApiException("Room is under maintenance", HttpStatus.BAD_REQUEST);
+            Room room = roomRepository.findById(request.getRoomId())
+                    .orElseThrow(() -> new ApiException("Room not found", HttpStatus.NOT_FOUND));
+
+            if (room.getStatus() == Room.RoomStatus.MAINTENANCE) {
+                throw new ApiException("Room is under maintenance", HttpStatus.BAD_REQUEST);
+            }
+            if (room.getOccupied() >= room.getCapacity()) {
+                throw new ApiException("Room is fully occupied", HttpStatus.BAD_REQUEST);
+            }
+
+            Booking booking = Booking.builder()
+                    .student(student)
+                    .room(room)
+                    .checkInDate(request.getCheckInDate())
+                    .status(Booking.BookingStatus.PENDING)
+                    .build();
+
+            return bookingRepository.save(booking);
         }
-        if (room.getOccupied() >= room.getCapacity()) {
-            throw new ApiException("Room is fully occupied", HttpStatus.BAD_REQUEST);
-        }
-
-        Booking booking = Booking.builder()
-                .student(student)
-                .room(room)
-                .checkInDate(request.getCheckInDate())
-                .status(Booking.BookingStatus.PENDING)
-                .build();
-
-        return bookingRepository.save(booking);
     }
 
     public List<Booking> getBookingsForStudent(Long studentId) {
@@ -61,9 +72,14 @@ public class BookingService {
         }
 
         Room room = booking.getRoom();
+        Booking.BookingStatus oldStatus = booking.getStatus();
+
+        if (oldStatus == newStatus) {
+            return booking;
+        }
 
         // Only increment occupancy the first time a booking is approved
-        if (newStatus == Booking.BookingStatus.APPROVED && booking.getStatus() != Booking.BookingStatus.APPROVED) {
+        if (newStatus == Booking.BookingStatus.APPROVED && oldStatus != Booking.BookingStatus.APPROVED) {
             if (room.getOccupied() >= room.getCapacity()) {
                 throw new ApiException("Room is fully occupied", HttpStatus.BAD_REQUEST);
             }
@@ -74,12 +90,16 @@ public class BookingService {
             roomRepository.save(room);
         }
 
-        // Free up the room slot if a previously approved booking is cancelled/completed
-        boolean wasApproved = booking.getStatus() == Booking.BookingStatus.APPROVED;
-        boolean freeingUp = (newStatus == Booking.BookingStatus.CANCELLED || newStatus == Booking.BookingStatus.COMPLETED);
+        // Free up the room slot if a previously approved booking is cancelled/rejected/completed
+        boolean wasApproved = oldStatus == Booking.BookingStatus.APPROVED;
+        boolean freeingUp = (newStatus == Booking.BookingStatus.CANCELLED
+                || newStatus == Booking.BookingStatus.REJECTED
+                || newStatus == Booking.BookingStatus.COMPLETED);
         if (wasApproved && freeingUp) {
             room.setOccupied(Math.max(0, room.getOccupied() - 1));
-            room.setStatus(Room.RoomStatus.AVAILABLE);
+            if (room.getOccupied() < room.getCapacity()) {
+                room.setStatus(Room.RoomStatus.AVAILABLE);
+            }
             roomRepository.save(room);
         }
 

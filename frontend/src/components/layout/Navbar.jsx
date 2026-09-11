@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Sun, Moon, LogOut, User as UserIcon, Menu, Bell, Shield, GraduationCap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { NotificationDropdown } from '../notifications/NotificationDropdown';
 
 export const Navbar = ({ onToggleSidebar, title }) => {
   const { user, logout } = useAuth();
@@ -57,6 +58,9 @@ export const Navbar = ({ onToggleSidebar, title }) => {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        {/* Notifications Dropdown */}
+        {user && <NotificationDropdown />}
+
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
