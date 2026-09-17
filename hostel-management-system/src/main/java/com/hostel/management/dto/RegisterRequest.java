@@ -18,7 +18,11 @@ public class RegisterRequest {
     private String username;
 
     @NotBlank(message = "Email is required")
-    @Email(message = "Enter a valid email address")
+    @Pattern(regexp = "^[^A-Z]*$", message = "Email must be in lowercase.")
+    @Pattern(
+            regexp = "^[a-zA-Z0-9._%+-]+@([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$",
+            message = "Please enter a valid email address (e.g., username@domain.com)."
+    )
     private String email;
 
     @NotBlank(message = "Mobile number is required")

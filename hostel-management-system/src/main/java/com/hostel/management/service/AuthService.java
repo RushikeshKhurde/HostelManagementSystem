@@ -30,7 +30,17 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         String username = request.getUsername().trim();
-        String email = request.getEmail().trim().toLowerCase();
+        String rawEmail = request.getEmail();
+        if (rawEmail == null || rawEmail.isBlank()) {
+            throw new ApiException("Email is required", HttpStatus.BAD_REQUEST);
+        }
+        if (rawEmail.chars().anyMatch(Character::isUpperCase)) {
+            throw new ApiException("Email must be in lowercase.", HttpStatus.BAD_REQUEST);
+        }
+        if (!rawEmail.matches("^[a-z0-9._%+-]+@([a-z0-9-]+\\.)+[a-z]{2,}$")) {
+            throw new ApiException("Please enter a valid email address (e.g., username@domain.com).", HttpStatus.BAD_REQUEST);
+        }
+        String email = rawEmail;
         String mobile = request.getMobileNumber().trim();
 
         if ("warden".equalsIgnoreCase(username) || "admin".equalsIgnoreCase(username)) {
@@ -45,7 +55,7 @@ public class AuthService {
             throw new ApiException("Username '" + username + "' is already taken", HttpStatus.CONFLICT);
         }
         if (userRepository.existsByEmail(email)) {
-            throw new ApiException("Email '" + email + "' is already registered", HttpStatus.CONFLICT);
+            throw new ApiException("Email address is already registered.", HttpStatus.CONFLICT);
         }
         if (userRepository.existsByMobileNumber(mobile)) {
             throw new ApiException("Mobile number is already registered", HttpStatus.CONFLICT);
