@@ -72,6 +72,16 @@ export const MyBookings = () => {
     }
   };
 
+  const handleCancelBooking = async (bookingId) => {
+    try {
+      await api.put(`/bookings/${bookingId}/cancel`);
+      toastSuccess('Booking request cancelled successfully.');
+      fetchData();
+    } catch (err) {
+      toastError(err.response?.data?.message || err.message || 'Failed to cancel booking');
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -161,9 +171,17 @@ export const MyBookings = () => {
                       <Link to="/student/payments" className="btn btn-primary btn-sm">
                         Pay Rent <ArrowRight size={14} />
                       </Link>
+                    ) : b.status === 'PENDING' ? (
+                      <Button
+                        variant="outlineDanger"
+                        size="sm"
+                        onClick={() => handleCancelBooking(b.id)}
+                      >
+                        Cancel Request
+                      </Button>
                     ) : (
                       <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                        {b.status === 'PENDING' ? 'Under Review' : 'Closed'}
+                        Closed
                       </span>
                     )}
                   </td>

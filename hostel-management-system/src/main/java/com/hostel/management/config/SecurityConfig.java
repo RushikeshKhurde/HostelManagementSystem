@@ -1,6 +1,7 @@
 package com.hostel.management.config;
 
 import com.hostel.management.security.CustomUserDetailsService;
+import com.hostel.management.security.JwtAuthenticationEntryPoint;
 import com.hostel.management.security.JwtFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -21,6 +22,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import org.springframework.beans.factory.annotation.Value;
 import java.util.List;
 
 @Configuration
@@ -31,6 +33,10 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
     private final JwtFilter jwtFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://localhost:8080,http://127.0.0.1:5173}")
+    private String allowedOrigins;
 
     // BCrypt is a one-way, salted hashing algorithm - passwords are NEVER stored or compared in plain text
     @Bean
@@ -57,7 +63,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(eh -> eh.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/", "/index.html", "/pages/**", "/css/**", "/js/**", "/assets/**", "/favicon.ico", "/vite.svg", "/login", "/register", "/profile", "/admin/**", "/student/**", "/warden/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/rooms/**").permitAll()
@@ -66,7 +74,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "WARDEN")
                         .requestMatchers("/api/dashboard/**").authenticated()
                         .requestMatchers("/api/bookings/**").hasAnyRole("USER", "ADMIN", "WARDEN")
-                        .requestMatchers("/api/payments/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/payments/**").hasAnyRole("USER", "ADMIN", "WARDEN")
                         .requestMatchers("/api/complaints/**").hasAnyRole("USER", "ADMIN", "WARDEN")
                         .requestMatchers("/api/leaves/**").hasAnyRole("USER", "ADMIN", "WARDEN")
                         .requestMatchers("/api/notices/**").hasAnyRole("ADMIN", "WARDEN")
@@ -83,10 +91,39 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+
+        java.util.List<String> origins = new java.util.ArrayList<>();
+        if (allowedOrigins != null && !allowedOrigins.isBlank()) {
+            for (String origin : allowedOrigins.split(",")) {
+                String trimmed = origin.trim();
+                if (!trimmed.isEmpty()) {
+                    origins.add(trimmed);
+                }
+            }
+        }
+
+        // Include default local patterns for flexible frontend development ports
+        java.util.List<String> defaultPatterns = java.util.List.of(
+                "http://localhost:[*]",
+                "http://127.0.0.1:[*]",
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:3000",
+                "http://localhost:8080"
+        );
+        for (String pattern : defaultPatterns) {
+            if (!origins.contains(pattern)) {
+                origins.add(pattern);
+            }
+        }
+
+        configuration.setAllowedOriginPatterns(origins);
+        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(java.util.List.of("*"));
+        configuration.setExposedHeaders(java.util.List.of("Authorization", "Content-Disposition", "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

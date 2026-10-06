@@ -15,16 +15,6 @@ export const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isReadOnly, setIsReadOnly] = useState(true);
-
-  React.useEffect(() => {
-    setUsername('');
-    setPassword('');
-    const timer = setTimeout(() => {
-      setIsReadOnly(false);
-    }, 200);
-    return () => clearTimeout(timer);
-  }, []);
 
   React.useEffect(() => {
     if (user) {
@@ -130,25 +120,7 @@ export const Login = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} autoComplete="off" noValidate>
-          {/* Hidden trap inputs to prevent aggressive browser autofill */}
-          <input
-            type="text"
-            name="prevent_autofill_username"
-            style={{ display: 'none' }}
-            tabIndex={-1}
-            aria-hidden="true"
-            autoComplete="off"
-          />
-          <input
-            type="password"
-            name="prevent_autofill_password"
-            style={{ display: 'none' }}
-            tabIndex={-1}
-            aria-hidden="true"
-            autoComplete="off"
-          />
-
+        <form onSubmit={handleSubmit} noValidate>
           <Input
             label="Username or Email"
             id="username"
@@ -157,14 +129,8 @@ export const Login = () => {
             icon={UserIcon}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            onFocus={() => setIsReadOnly(false)}
-            onClick={() => setIsReadOnly(false)}
-            readOnly={isReadOnly}
             placeholder="Enter your username or email"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="none"
-            spellCheck="false"
+            autoComplete="username"
             required
           />
 
@@ -176,11 +142,8 @@ export const Login = () => {
             icon={Lock}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            onFocus={() => setIsReadOnly(false)}
-            onClick={() => setIsReadOnly(false)}
-            readOnly={isReadOnly}
             placeholder="Enter your password"
-            autoComplete="new-password"
+            autoComplete="current-password"
             required
           />
 

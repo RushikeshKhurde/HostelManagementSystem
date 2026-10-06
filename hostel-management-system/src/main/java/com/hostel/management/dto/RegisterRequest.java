@@ -22,14 +22,13 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message = "Mobile number is required")
-    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Enter a valid 10-digit mobile number")
+    @Pattern(regexp = ValidationConstants.MOBILE_PATTERN, message = ValidationConstants.MOBILE_MESSAGE)
     private String mobileNumber;
 
-    // Password must be 8-20 chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special character
     @NotBlank(message = "Password is required")
     @Pattern(
-            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!]).{8,20}$",
-            message = "Password must be 8-20 characters and include an uppercase letter, a lowercase letter, a digit, and a special character (@#$%^&+=!)"
+            regexp = ValidationConstants.PASSWORD_PATTERN,
+            message = ValidationConstants.PASSWORD_MESSAGE
     )
     private String password;
 
@@ -41,7 +40,4 @@ public class RegisterRequest {
     private LocalDate dateOfBirth;
 
     private String address;
-
-    // Ignored on backend: public registration always creates USER
-    private String role;
 }

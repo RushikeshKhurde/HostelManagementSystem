@@ -1,8 +1,10 @@
 package com.hostel.management.controller;
 
-import com.hostel.management.model.Complaint;
+import com.hostel.management.dto.ComplaintRequest;
+import com.hostel.management.dto.ComplaintResponse;
 import com.hostel.management.security.UserPrincipal;
 import com.hostel.management.service.ComplaintService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,26 +23,28 @@ public class ComplaintController {
 
     @PostMapping
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<Complaint> createComplaint(@AuthenticationPrincipal UserPrincipal principal,
-                                                      @RequestBody Complaint complaint) {
-        return ResponseEntity.ok(complaintService.createComplaint(principal.getUser(), complaint));
+    public ResponseEntity<ComplaintResponse> createComplaint(@AuthenticationPrincipal UserPrincipal principal,
+                                                              @Valid @RequestBody ComplaintRequest request) {
+        return ResponseEntity.ok(complaintService.createComplaint(principal.getUser(), request));
     }
 
     @GetMapping("/my")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<List<Complaint>> getMyComplaints(@AuthenticationPrincipal UserPrincipal principal) {
+    public ResponseEntity<List<ComplaintResponse>> getMyComplaints(@AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(complaintService.getComplaintsForStudent(principal.getUser().getId()));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'WARDEN')")
-    public ResponseEntity<List<Complaint>> getAllComplaints() {
+    public ResponseEntity<List<ComplaintResponse>> getAllComplaints() {
         return ResponseEntity.ok(complaintService.getAllComplaints());
     }
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('ADMIN', 'WARDEN')")
-    public ResponseEntity<Complaint> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        return ResponseEntity.ok(complaintService.updateStatus(id, body.get("status"), body.get("adminComment")));
+    public ResponseEntity<ComplaintResponse> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String status = body != null ? body.get("status") : null;
+        String adminComment = body != null ? body.get("adminComment") : null;
+        return ResponseEntity.ok(complaintService.updateStatus(id, status, adminComment));
     }
 }

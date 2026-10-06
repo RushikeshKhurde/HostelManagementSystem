@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -26,8 +27,8 @@ public class Payment {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Booking booking;
 
-    @Column(nullable = false)
-    private Double amount;
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal amount;
 
     @Column(nullable = false, unique = true)
     private String transactionRef;
@@ -39,15 +40,9 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private PaymentStatus status = PaymentStatus.SUCCESS; // SUCCESS, FAILED, PENDING, REFUNDED
+    private PaymentStatus status = PaymentStatus.PENDING; // SUCCESS, FAILED, PENDING, REFUNDED
 
-    @Column(updatable = false)
     private LocalDateTime paidAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.paidAt = LocalDateTime.now();
-    }
 
     public enum PaymentMethod {
         CARD, UPI, NETBANKING, CASH

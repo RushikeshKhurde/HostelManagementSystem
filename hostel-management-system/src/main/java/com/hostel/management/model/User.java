@@ -11,11 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users", uniqueConstraints = {
-        @UniqueConstraint(columnNames = "username"),
-        @UniqueConstraint(columnNames = "email"),
-        @UniqueConstraint(columnNames = "mobile_number")
-})
+@Table(name = "users")
 @Data
 @Builder
 @NoArgsConstructor

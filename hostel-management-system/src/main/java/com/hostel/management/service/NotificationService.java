@@ -1,5 +1,6 @@
 package com.hostel.management.service;
 
+import com.hostel.management.dto.NotificationResponse;
 import com.hostel.management.exception.ApiException;
 import com.hostel.management.model.*;
 import com.hostel.management.repository.BookingRepository;
@@ -11,9 +12,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,15 +27,19 @@ public class NotificationService {
     private final BookingRepository bookingRepository;
     private final PaymentRepository paymentRepository;
 
-    public List<Notification> getNotificationsForUser(Long userId) {
-        return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId);
+    @Transactional(readOnly = true)
+    public List<NotificationResponse> getNotificationsForUser(Long userId) {
+        return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(userId).stream()
+                .map(NotificationResponse::fromEntity)
+                .collect(Collectors.toList());
     }
 
     public long getUnreadCountForUser(Long userId) {
         return notificationRepository.countByRecipientIdAndIsReadFalse(userId);
     }
 
-    public Notification markAsRead(Long notificationId, Long userId) {
+    @Transactional
+    public NotificationResponse markAsRead(Long notificationId, Long userId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ApiException("Notification not found", HttpStatus.NOT_FOUND));
 
@@ -41,7 +48,8 @@ public class NotificationService {
         }
 
         notification.setRead(true);
-        return notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+        return NotificationResponse.fromEntity(saved);
     }
 
     @Transactional
@@ -72,18 +80,11 @@ public class NotificationService {
         }
 
         Booking activeBooking = approvedBookings.get(0);
-        double totalFee = activeBooking.getRoom().getPricePerMonth();
+        BigDecimal totalFee = activeBooking.getRoom().getPricePerMonth();
+        BigDecimal totalPaid = calculateTotalPaid(activeBooking.getId());
+        BigDecimal remainingAmount = totalFee.subtract(totalPaid);
 
-        // Calculate paid amount
-        List<Payment> payments = paymentRepository.findByBookingStudentId(studentId);
-        double totalPaid = payments.stream()
-                .filter(p -> p.getStatus() == Payment.PaymentStatus.SUCCESS)
-                .mapToDouble(Payment::getAmount)
-                .sum();
-
-        double remainingAmount = totalFee - totalPaid;
-
-        if (remainingAmount <= 0) {
+        if (remainingAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ApiException("This student has no pending hostel fees.", HttpStatus.BAD_REQUEST);
         }
 
@@ -93,14 +94,14 @@ public class NotificationService {
         );
         if (duplicateExists) {
             throw new ApiException(
-                    "A fee reminder for the current pending amount (\u20B9" + String.format("%,.0f", remainingAmount) + ") has already been sent to this student.",
+                    "A fee reminder for the current pending amount (\u20B9" + String.format("%,.2f", remainingAmount) + ") has already been sent to this student.",
                     HttpStatus.CONFLICT
             );
         }
 
-        String formattedTotal = String.format("%,.0f", totalFee);
-        String formattedPaid = String.format("%,.0f", totalPaid);
-        String formattedRemaining = String.format("%,.0f", remainingAmount);
+        String formattedTotal = String.format("%,.2f", totalFee);
+        String formattedPaid = String.format("%,.2f", totalPaid);
+        String formattedRemaining = String.format("%,.2f", remainingAmount);
 
         String title = "Hostel Fee Reminder";
         String message = "Hello " + student.getFullName() + ",\n\nYour hostel fee is currently pending.\n\nTotal Hostel Fee: \u20B9" + formattedTotal + "\nAmount Paid: \u20B9" + formattedPaid + "\nRemaining Amount: \u20B9" + formattedRemaining + "\n\nPlease pay the remaining hostel fee as soon as possible.";
@@ -145,17 +146,11 @@ public class NotificationService {
             }
 
             Booking activeBooking = approvedBookings.get(0);
-            double totalFee = activeBooking.getRoom().getPricePerMonth();
+            BigDecimal totalFee = activeBooking.getRoom().getPricePerMonth();
+            BigDecimal totalPaid = calculateTotalPaid(activeBooking.getId());
+            BigDecimal remainingAmount = totalFee.subtract(totalPaid);
 
-            List<Payment> payments = paymentRepository.findByBookingStudentId(student.getId());
-            double totalPaid = payments.stream()
-                    .filter(p -> p.getStatus() == Payment.PaymentStatus.SUCCESS)
-                    .mapToDouble(Payment::getAmount)
-                    .sum();
-
-            double remainingAmount = totalFee - totalPaid;
-
-            if (remainingAmount <= 0) {
+            if (remainingAmount.compareTo(BigDecimal.ZERO) <= 0) {
                 continue;
             }
 
@@ -170,21 +165,21 @@ public class NotificationService {
                 continue;
             }
 
-            String formattedTotal = String.format("%,.0f", totalFee);
-            String formattedPaid = String.format("%,.0f", totalPaid);
-            String formattedRemaining = String.format("%,.0f", remainingAmount);
+            String formattedTotal = String.format("%,.2f", totalFee);
+            String formattedPaid = String.format("%,.2f", totalPaid);
+            String formattedRemaining = String.format("%,.2f", remainingAmount);
 
             String title = "Hostel Fee Reminder";
             String message = "Hello " + student.getFullName() + ",\n\nYour hostel fee is currently pending.\n\nTotal Hostel Fee: \u20B9" + formattedTotal + "\nAmount Paid: \u20B9" + formattedPaid + "\nRemaining Amount: \u20B9" + formattedRemaining + "\n\nPlease pay the remaining hostel fee as soon as possible.";
 
             Notification notification = Notification.builder()
-                    .recipient(student)
-                    .title(title)
-                    .message(message)
-                    .type(NotificationType.FEE_REMINDER)
-                    .amount(remainingAmount)
-                    .isRead(false)
-                    .build();
+                .recipient(student)
+                .title(title)
+                .message(message)
+                .type(NotificationType.FEE_REMINDER)
+                .amount(remainingAmount)
+                .isRead(false)
+                .build();
 
             notificationRepository.save(notification);
             notificationsCreated++;
@@ -197,5 +192,13 @@ public class NotificationService {
         response.put("notificationsCreated", notificationsCreated);
         response.put("notificationsSkipped", notificationsSkipped);
         return response;
+    }
+
+    private BigDecimal calculateTotalPaid(Long bookingId) {
+        List<Payment> payments = paymentRepository.findByBookingId(bookingId);
+        return payments.stream()
+                .filter(p -> p.getStatus() == Payment.PaymentStatus.SUCCESS)
+                .map(Payment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }
