@@ -121,8 +121,8 @@ export const Profile = () => {
       setErrorMessage('Email address is required.');
       return;
     }
-    if (!formData.mobileNumber.trim() || !/^[0-9]{10}$/.test(formData.mobileNumber.trim())) {
-      setErrorMessage('Please enter a valid 10-digit mobile number.');
+    if (!formData.mobileNumber.trim() || !/^[6-9]\d{9}$/.test(formData.mobileNumber.trim())) {
+      setErrorMessage('Please enter a valid 10-digit mobile number starting with 6-9.');
       return;
     }
 
@@ -131,8 +131,8 @@ export const Profile = () => {
         setErrorMessage('Current password is required to change your password.');
         return;
       }
-      if (passwordData.newPassword.length < 6) {
-        setErrorMessage('New password must be at least 6 characters long.');
+      if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@#$%^&+=!]).{8,20}$/.test(passwordData.newPassword)) {
+        setErrorMessage('New password must be 8-20 characters and include an uppercase letter, a lowercase letter, a digit, and a special character (@#$%^&+=!).');
         return;
       }
       if (passwordData.newPassword !== passwordData.confirmNewPassword) {

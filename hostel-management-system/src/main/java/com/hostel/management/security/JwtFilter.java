@@ -42,11 +42,20 @@ public class JwtFilter extends OncePerRequestFilter {
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                if (jwtUtil.isTokenValid(token, userDetails.getUsername())) {
+                boolean isActive = userDetails.isEnabled();
+                if (userDetails instanceof UserPrincipal principal) {
+                    if ("INACTIVE".equalsIgnoreCase(principal.getUser().getStatus()) || !principal.getUser().isEnabled()) {
+                        isActive = false;
+                    }
+                }
+
+                if (isActive && jwtUtil.isTokenValid(token, userDetails.getUsername())) {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    SecurityContextHolder.clearContext();
                 }
             }
         } catch (Exception ex) {

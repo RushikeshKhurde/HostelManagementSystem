@@ -49,7 +49,17 @@ export const FeeManagement = () => {
     }
   };
 
-  const totalRevenue = payments.reduce((acc, p) => (p.status === 'SUCCESS' ? acc + p.amount : acc), 0);
+  const handleConfirmCash = async (paymentId) => {
+    try {
+      await api.put(`/payments/${paymentId}/confirm`);
+      toastSuccess('Cash payment confirmed as SUCCESS');
+      fetchPayments();
+    } catch (err) {
+      toastError(err.response?.data?.message || err.message || 'Failed to confirm payment');
+    }
+  };
+
+  const totalRevenue = payments.reduce((acc, p) => (p.status === 'SUCCESS' ? acc + (Number(p.amount) || 0) : acc), 0);
 
   const filteredPayments = payments.filter((p) => {
     const studentName = p.booking?.student?.fullName || '';
@@ -139,9 +149,16 @@ export const FeeManagement = () => {
                   <td>{p.paidAt ? new Date(p.paidAt).toLocaleString() : 'N/A'}</td>
                   <td><Badge status={p.status} /></td>
                   <td style={{ textAlign: 'right' }}>
-                    <Button variant="ghost" size="sm" icon={FileText} onClick={() => setSelectedPayment(p)}>
-                      Receipt
-                    </Button>
+                    <div style={{ display: 'inline-flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {p.status === 'PENDING' && p.method === 'CASH' && (
+                        <Button variant="primary" size="sm" onClick={() => handleConfirmCash(p.id)}>
+                          Confirm Cash
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm" icon={FileText} onClick={() => setSelectedPayment(p)}>
+                        Receipt
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

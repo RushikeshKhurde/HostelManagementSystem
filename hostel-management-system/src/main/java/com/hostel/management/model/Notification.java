@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -37,7 +38,8 @@ public class Notification {
     @Column(nullable = false, length = 50)
     private NotificationType type;
 
-    private Double amount;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal amount;
 
     @Column(name = "is_read", nullable = false)
     @Builder.Default

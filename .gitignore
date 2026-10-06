@@ -58,6 +58,8 @@ application-secret.properties
 # =========================
 *.tmp
 *.temp
+*.backup
+args.txt
 
 # =========================
 # Build output

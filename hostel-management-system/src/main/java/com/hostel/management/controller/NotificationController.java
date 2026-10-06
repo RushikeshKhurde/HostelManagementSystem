@@ -1,6 +1,6 @@
 package com.hostel.management.controller;
 
-import com.hostel.management.model.Notification;
+import com.hostel.management.dto.NotificationResponse;
 import com.hostel.management.security.UserPrincipal;
 import com.hostel.management.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ public class NotificationController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<Notification>> getMyNotifications(@AuthenticationPrincipal UserPrincipal principal) {
+    public ResponseEntity<List<NotificationResponse>> getMyNotifications(@AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(notificationService.getNotificationsForUser(principal.getUser().getId()));
     }
 
@@ -34,8 +34,8 @@ public class NotificationController {
 
     @PutMapping("/{id}/read")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Notification> markAsRead(@PathVariable Long id,
-                                                    @AuthenticationPrincipal UserPrincipal principal) {
+    public ResponseEntity<NotificationResponse> markAsRead(@PathVariable Long id,
+                                                            @AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(notificationService.markAsRead(id, principal.getUser().getId()));
     }
 
