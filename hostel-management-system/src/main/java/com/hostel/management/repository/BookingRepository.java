@@ -20,7 +20,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByStudentIdAndStatusIn(Long studentId, Collection<Booking.BookingStatus> statuses);
     boolean existsByRoomId(Long roomId);
     long countByRoomId(Long roomId);
+    long countByRoomIdAndStatus(Long roomId, Booking.BookingStatus status);
+    List<Booking> findByRoomId(Long roomId);
     List<Booking> findByRoomIdAndStatus(Long roomId, Booking.BookingStatus status);
+    List<Booking> findByRoomIdAndStatusOrderByCreatedAtAsc(Long roomId, Booking.BookingStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM Booking b WHERE b.id = :id")

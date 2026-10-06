@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -31,18 +30,18 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        String username = request.getUsername().trim().toLowerCase(Locale.ROOT);
-        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+        String username = request.getUsername().trim();
+        String email = request.getEmail().trim().toLowerCase();
         String mobile = request.getMobileNumber().trim();
 
-        if ("warden".equals(username) || "admin".equals(username)) {
+        if ("warden".equalsIgnoreCase(username) || "admin".equalsIgnoreCase(username)) {
             throw new ApiException("Username '" + username + "' is reserved for system administration", HttpStatus.BAD_REQUEST);
         }
 
-        if (userRepository.existsByUsername(username)) {
+        if (userRepository.existsByUsernameIgnoreCase(username)) {
             throw new ApiException("Username '" + username + "' is already taken", HttpStatus.CONFLICT);
         }
-        if (userRepository.existsByEmail(email)) {
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new ApiException("Email '" + email + "' is already registered", HttpStatus.CONFLICT);
         }
         if (userRepository.existsByMobileNumber(mobile)) {
@@ -57,7 +56,7 @@ public class AuthService {
             throw new ApiException("Date of birth cannot be a future date", HttpStatus.BAD_REQUEST);
         }
 
-        // Public registration ALWAYS assigns role USER (Student).
+        // Public registration ALWAYS assigns role USER.
         Role role = Role.USER;
 
         User user = User.builder()
@@ -82,13 +81,13 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        String identifier = request.getResolvedIdentifier().trim().toLowerCase(Locale.ROOT);
+        String identifier = request.getResolvedIdentifier();
         if (identifier.isEmpty()) {
             throw new ApiException("Username or email is required", HttpStatus.BAD_REQUEST);
         }
 
         User user = userRepository.findByUsernameOrEmail(identifier)
-                .or(() -> userRepository.findByMobileNumber(request.getResolvedIdentifier().trim()))
+                .or(() -> userRepository.findByMobileNumber(identifier))
                 .orElseThrow(() -> new ApiException("Invalid credentials", HttpStatus.UNAUTHORIZED));
 
         if (!user.isEnabled() || "INACTIVE".equalsIgnoreCase(user.getStatus())) {
@@ -123,7 +122,7 @@ public class AuthService {
         String newMobile = req.getMobileNumber().trim();
 
         // Check if email changed and taken by another user
-        if (!user.getEmail().equalsIgnoreCase(newEmail) && userRepository.existsByEmail(newEmail)) {
+        if (!user.getEmail().equalsIgnoreCase(newEmail) && userRepository.existsByEmailIgnoreCase(newEmail)) {
             throw new ApiException("Email address '" + newEmail + "' is already in use by another account", HttpStatus.CONFLICT);
         }
 
