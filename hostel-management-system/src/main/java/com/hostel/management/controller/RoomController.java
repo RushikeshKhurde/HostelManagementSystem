@@ -27,6 +27,12 @@ public class RoomController {
         return ResponseEntity.ok(roomService.getRoomById(id));
     }
 
+    @GetMapping({"/{id}/students", "/{id}/occupants"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'WARDEN')")
+    public ResponseEntity<List<com.hostel.management.dto.RoomOccupantResponse>> getRoomOccupants(@PathVariable Long id) {
+        return ResponseEntity.ok(roomService.getRoomOccupants(id));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Room> addRoom(@Valid @RequestBody Room room) {
