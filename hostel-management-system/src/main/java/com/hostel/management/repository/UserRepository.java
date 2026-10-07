@@ -23,4 +23,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByRole(Role role);
     long countByRole(Role role);
+
+    @Query("SELECT MAX(u.studentId) FROM User u WHERE u.studentId LIKE :prefix")
+    Optional<String> findMaxStudentIdByPrefix(@Param("prefix") String prefix);
+
+    boolean existsByStudentId(String studentId);
 }

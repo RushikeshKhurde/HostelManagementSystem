@@ -15,6 +15,7 @@ import {
   X,
   Shield,
   BookmarkCheck,
+  MessageSquare,
 } from 'lucide-react';
 
 export const Sidebar = ({ isOpen, onClose }) => {
@@ -42,6 +43,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
       { to: '/admin/complaints', icon: MessageSquareWarning, label: 'Complaints' },
       { to: '/admin/leaves', icon: CalendarDays, label: 'Leave Requests' },
       { to: '/admin/notices', icon: Bell, label: 'Notice Board' },
+      { to: '/admin/feedback', icon: MessageSquare, label: 'Student Feedback' },
     ]},
     { label: 'Account', items: [
       { to: '/profile', icon: User, label: 'My Profile' },
@@ -61,6 +63,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
       { to: '/student/complaints', icon: MessageSquareWarning, label: 'My Complaints' },
       { to: '/student/leaves', icon: CalendarDays, label: 'Leave Applications' },
       { to: '/student/notices', icon: Bell, label: 'Announcements' },
+      { to: '/student/feedback', icon: MessageSquare, label: 'Hostel Feedback' },
     ]},
     { label: 'Account', items: [
       { to: '/profile', icon: User, label: 'My Profile' },
@@ -80,6 +83,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
       { to: '/warden/leaves', icon: CalendarDays, label: 'Leave Requests' },
       { to: '/warden/complaints', icon: MessageSquareWarning, label: 'Complaints' },
       { to: '/warden/notices', icon: Bell, label: 'Notice Board' },
+      { to: '/warden/feedback', icon: MessageSquare, label: 'Student Feedback' },
     ]},
     { label: 'Account', items: [
       { to: '/profile', icon: User, label: 'My Profile' },

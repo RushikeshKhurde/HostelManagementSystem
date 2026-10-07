@@ -21,6 +21,7 @@ import { UserManagement } from './pages/admin/UserManagement';
 import { ComplaintManagement } from './pages/admin/ComplaintManagement';
 import { LeaveManagement } from './pages/admin/LeaveManagement';
 import { NoticeManagement } from './pages/admin/NoticeManagement';
+import { FeedbackManagement } from './pages/admin/FeedbackManagement';
 
 // Student Pages
 import { StudentDashboard } from './pages/student/StudentDashboard';
@@ -29,6 +30,7 @@ import { MyPayments } from './pages/student/MyPayments';
 import { MyComplaints } from './pages/student/MyComplaints';
 import { MyLeave } from './pages/student/MyLeave';
 import { StudentNotices } from './pages/student/StudentNotices';
+import { StudentFeedback } from './pages/student/StudentFeedback';
 
 // Warden Pages
 import { WardenDashboard } from './pages/warden/WardenDashboard';
@@ -56,6 +58,7 @@ export default function App() {
                   <Route path="/admin/complaints" element={<ComplaintManagement />} />
                   <Route path="/admin/leaves" element={<LeaveManagement />} />
                   <Route path="/admin/notices" element={<NoticeManagement />} />
+                  <Route path="/admin/feedback" element={<FeedbackManagement />} />
                 </Route>
 
                 {/* Student Routes */}
@@ -67,6 +70,7 @@ export default function App() {
                   <Route path="/student/complaints" element={<MyComplaints />} />
                   <Route path="/student/leaves" element={<MyLeave />} />
                   <Route path="/student/notices" element={<StudentNotices />} />
+                  <Route path="/student/feedback" element={<StudentFeedback />} />
                 </Route>
 
                 {/* Warden Routes */}
@@ -78,6 +82,7 @@ export default function App() {
                   <Route path="/warden/leaves" element={<LeaveManagement />} />
                   <Route path="/warden/complaints" element={<ComplaintManagement />} />
                   <Route path="/warden/notices" element={<NoticeManagement />} />
+                  <Route path="/warden/feedback" element={<FeedbackManagement isWarden />} />
                 </Route>
 
                 {/* Shared Protected Route */}

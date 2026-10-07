@@ -2,6 +2,8 @@ package com.hostel.management.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -33,6 +35,8 @@ public class User {
     private String username;
 
     @Column(nullable = false, unique = true, length = 150)
+    @Email
+    @Pattern(regexp = "^[a-z0-9._%+-]+@([a-z0-9-]+\\.)+[a-z]{2,}$")
     private String email;
 
     @Column(name = "mobile_number", nullable = false, unique = true, length = 15)
@@ -56,6 +60,16 @@ public class User {
 
     @Column(length = 255)
     private String address;
+
+    @Column(name = "student_id", unique = true, length = 30)
+    private String studentId;
+
+    @Column(name = "profile_photo", length = 255)
+    private String profilePhoto;
+
+    @Column(name = "email_verified", nullable = false)
+    @Builder.Default
+    private boolean emailVerified = true;
 
     @Column(length = 20, nullable = false)
     @Builder.Default

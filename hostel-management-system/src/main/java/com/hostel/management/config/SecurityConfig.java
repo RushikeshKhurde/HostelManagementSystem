@@ -59,7 +59,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/", "/index.html", "/pages/**", "/css/**", "/js/**", "/assets/**", "/favicon.ico", "/vite.svg", "/login", "/register", "/profile", "/admin/**", "/student/**", "/warden/**").permitAll()
+                        .requestMatchers("/", "/index.html", "/pages/**", "/css/**", "/js/**", "/assets/**", "/favicon.ico", "/vite.svg", "/login", "/register", "/profile", "/forgot-password", "/uploads/**", "/admin/**", "/student/**", "/warden/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/rooms/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/notices/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -71,6 +71,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/leaves/**").hasAnyRole("USER", "ADMIN", "WARDEN")
                         .requestMatchers("/api/notices/**").hasAnyRole("ADMIN", "WARDEN")
                         .requestMatchers("/api/profile/**").authenticated()
+                        .requestMatchers("/api/feedback/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())

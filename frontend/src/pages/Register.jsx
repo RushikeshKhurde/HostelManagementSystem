@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -26,12 +26,6 @@ export const Register = () => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-
-  React.useEffect(() => {
-    if (user) {
-      navigate(user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard', { replace: true });
-    }
-  }, [user, navigate]);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -70,9 +64,14 @@ export const Register = () => {
       newErrors.username = 'Only letters, numbers, dots, and underscores allowed.';
     }
 
-    const emailRegex = /^[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}$/;
-    if (!formData.email.trim() || !emailRegex.test(formData.email.trim())) {
-      newErrors.email = 'Please enter a valid email address.';
+    const email = formData.email;
+    const emailRegex = /^[a-z0-9._%+-]+@([a-z0-9-]+\.)+[a-z]{2,}$/;
+    if (!email || !email.trim()) {
+      newErrors.email = 'Please enter a valid email address (e.g., username@domain.com).';
+    } else if (/[A-Z]/.test(email)) {
+      newErrors.email = 'Email must be in lowercase.';
+    } else if (!emailRegex.test(email)) {
+      newErrors.email = 'Please enter a valid email address (e.g., username@domain.com).';
     }
 
     const mobileRegex = /^[6-9]\d{9}$/;
@@ -103,6 +102,12 @@ export const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  useEffect(() => {
+    if (user) {
+      navigate(user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -112,7 +117,7 @@ export const Register = () => {
       const payload = {
         fullName: formData.fullName.trim(),
         username: formData.username.trim(),
-        email: formData.email.trim(),
+        email: formData.email.trim().toLowerCase(),
         mobileNumber: formData.mobileNumber.trim(),
         password: formData.password,
         confirmPassword: formData.confirmPassword,
@@ -125,7 +130,11 @@ export const Register = () => {
       toastSuccess('Registration successful! Welcome to SmartHostel.');
       navigate('/student/dashboard', { replace: true });
     } catch (err) {
-      toastError(err.message || 'Registration failed.');
+      const msg = err.message || 'Registration failed.';
+      if (msg.toLowerCase().includes('email') && msg.toLowerCase().includes('already')) {
+        setErrors((prev) => ({ ...prev, email: 'Email address is already registered.' }));
+      }
+      toastError(msg);
     } finally {
       setLoading(false);
     }
@@ -206,6 +215,7 @@ export const Register = () => {
               label="Email Address"
               id="email"
               type="email"
+              pattern="^[a-z0-9._%+-]+@([a-z0-9-]+\.)+[a-z]{2,}$"
               icon={Mail}
               value={formData.email}
               onChange={handleChange}

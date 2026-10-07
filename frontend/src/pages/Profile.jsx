@@ -20,8 +20,11 @@ import {
   KeyRound,
   X,
   Save,
-  AlertCircle
+  AlertCircle,
+  Camera,
+  Upload
 } from 'lucide-react';
+import { VirtualIdCard } from '../components/common/VirtualIdCard';
 
 export const Profile = () => {
   const { user, updateUser } = useAuth();
@@ -31,6 +34,48 @@ export const Profile = () => {
   const [initialLoading, setInitialLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const fileInputRef = React.useRef(null);
+
+
+
+  const handlePhotoSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!validTypes.includes(file.type)) {
+      toastError('Invalid file type. Please select a JPG, JPEG, or PNG image.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toastError('File size exceeds 5MB limit. Please choose a smaller photo.');
+      return;
+    }
+
+    const formDataObj = new FormData();
+    formDataObj.append('file', file);
+
+    setUploadingPhoto(true);
+    try {
+      const res = await api.post('/profile/photo', formDataObj, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      updateUser(res.data);
+      setImgError(false);
+      toastSuccess('Profile photo updated successfully!');
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Failed to upload photo';
+      toastError(msg);
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   // Form State
   const [formData, setFormData] = useState({
@@ -108,41 +153,8 @@ export const Profile = () => {
     setPasswordData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorMessage('');
-
-    // Client-side validations
-    if (!formData.fullName.trim()) {
-      setErrorMessage('Full name is required.');
-      return;
-    }
-    if (!formData.email.trim()) {
-      setErrorMessage('Email address is required.');
-      return;
-    }
-    if (!formData.mobileNumber.trim() || !/^[0-9]{10}$/.test(formData.mobileNumber.trim())) {
-      setErrorMessage('Please enter a valid 10-digit mobile number.');
-      return;
-    }
-
-    if (changePassword) {
-      if (!passwordData.currentPassword) {
-        setErrorMessage('Current password is required to change your password.');
-        return;
-      }
-      if (passwordData.newPassword.length < 6) {
-        setErrorMessage('New password must be at least 6 characters long.');
-        return;
-      }
-      if (passwordData.newPassword !== passwordData.confirmNewPassword) {
-        setErrorMessage('New passwords do not match.');
-        return;
-      }
-    }
-
+  const saveProfileChanges = async () => {
     setLoading(true);
-
     try {
       const payload = {
         fullName: formData.fullName.trim(),
@@ -163,12 +175,61 @@ export const Profile = () => {
       toastSuccess('Profile updated successfully!');
       setIsEditing(false);
     } catch (err) {
-      const msg = err.response?.data?.message || 'Failed to update profile. Please check your inputs.';
+      const msg = err.response?.data?.message || err.message || 'Failed to update profile. Please check your inputs.';
       setErrorMessage(msg);
       toastError(msg);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+
+    // Client-side validations
+    if (!formData.fullName.trim()) {
+      setErrorMessage('Full name is required.');
+      return;
+    }
+    if (!formData.email.trim()) {
+      setErrorMessage('Email address is required.');
+      return;
+    }
+
+    const cleanEmail = formData.email.trim().toLowerCase();
+    const emailRegex = /^[a-z0-9._%+-]+@([a-z0-9-]+\.)+[a-z]{2,}$/;
+    if (/[A-Z]/.test(formData.email)) {
+      setErrorMessage('Email must be in lowercase.');
+      return;
+    }
+    if (!emailRegex.test(cleanEmail)) {
+      setErrorMessage('Please enter a valid email address (e.g., username@domain.com).');
+      return;
+    }
+
+    if (!formData.mobileNumber.trim() || !/^[0-9]{10}$/.test(formData.mobileNumber.trim())) {
+      setErrorMessage('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+
+    if (changePassword) {
+      if (!passwordData.currentPassword) {
+        setErrorMessage('Current password is required to change your password.');
+        return;
+      }
+      if (passwordData.newPassword.length < 6) {
+        setErrorMessage('New password must be at least 6 characters long.');
+        return;
+      }
+      if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+        setErrorMessage('New passwords do not match.');
+        return;
+      }
+    }
+
+    // Save profile changes directly
+    saveProfileChanges();
   };
 
   if (initialLoading && !user) {
@@ -226,22 +287,70 @@ export const Profile = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            <div
-              style={{
-                width: '68px',
-                height: '68px',
-                borderRadius: 'var(--radius-full)',
-                backgroundColor: user?.role === 'ADMIN' ? 'var(--primary)' : user?.role === 'WARDEN' ? '#0d9488' : 'var(--accent)',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 800,
-                fontSize: '1.75rem',
-                boxShadow: 'var(--shadow-md)',
-              }}
-            >
-              {user?.fullName?.[0]?.toUpperCase() || 'U'}
+            <div style={{ position: 'relative' }}>
+              <div
+                style={{
+                  width: '76px',
+                  height: '76px',
+                  borderRadius: 'var(--radius-full)',
+                  backgroundColor: user?.role === 'ADMIN' ? 'var(--primary)' : user?.role === 'WARDEN' ? '#0d9488' : 'var(--accent)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 800,
+                  fontSize: '1.75rem',
+                  boxShadow: 'var(--shadow-md)',
+                  overflow: 'hidden',
+                  border: '3px solid var(--border-color)',
+                }}
+              >
+                {user?.profilePhoto && !imgError ? (
+                  <img
+                    src={user.profilePhoto}
+                    alt={user.fullName}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={() => setImgError(true)}
+                  />
+                ) : (
+                  user?.fullName?.[0]?.toUpperCase() || 'U'
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                title="Upload Profile Photo (JPG, PNG)"
+                style={{
+                  position: 'absolute',
+                  bottom: '-2px',
+                  right: '-2px',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--primary)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid var(--bg-surface)',
+                  cursor: 'pointer',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+              >
+                {uploadingPhoto ? (
+                  <span style={{ fontSize: '10px' }}>...</span>
+                ) : (
+                  <Camera size={14} />
+                )}
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePhotoSelect}
+                accept="image/jpeg,image/png,image/jpg"
+                style={{ display: 'none' }}
+              />
             </div>
             <div>
               <h3 style={{ fontSize: '1.375rem', fontWeight: 700 }}>{user?.fullName}</h3>
@@ -262,6 +371,16 @@ export const Profile = () => {
           /* ================= VIEW MODE ================= */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+              {user?.studentId && (
+                <div className="card" style={{ backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--primary-light)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.375rem' }}>
+                    <Shield size={14} /> Student ID
+                  </div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, fontFamily: 'monospace', color: 'var(--primary)' }}>
+                    {user.studentId}
+                  </div>
+                </div>
+              )}
               <div className="card" style={{ backgroundColor: 'var(--bg-subtle)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.8125rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.375rem' }}>
                   <Mail size={14} /> Email Address
@@ -321,6 +440,18 @@ export const Profile = () => {
                 {user?.address || 'No permanent address recorded on file.'}
               </div>
             </div>
+
+            {user?.role === 'USER' && (
+              <div style={{ marginTop: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <h4 style={{ fontSize: '1.125rem', fontWeight: 700 }}>Virtual Student ID Card</h4>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
+                    Official digital identification card issued by Smart Hostel Management.
+                  </p>
+                </div>
+                <VirtualIdCard user={user} />
+              </div>
+            )}
           </div>
         ) : (
           /* ================= EDIT MODE ================= */
@@ -470,6 +601,8 @@ export const Profile = () => {
           </form>
         )}
       </div>
+
+
     </div>
   );
 };
