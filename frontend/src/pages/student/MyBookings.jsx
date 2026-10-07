@@ -44,8 +44,14 @@ export const MyBookings = () => {
     fetchData();
   }, []);
 
+  const activeBooking = bookings.find((b) => b.status === 'PENDING' || b.status === 'APPROVED');
+
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
+    if (activeBooking) {
+      toastError('You already have an active room booking. You cannot book another room.');
+      return;
+    }
     if (!selectedRoomId) {
       toastError('Please select a room');
       return;
@@ -60,9 +66,19 @@ export const MyBookings = () => {
       setIsModalOpen(false);
       fetchData();
     } catch (err) {
-      toastError(err.message || 'Failed to submit booking');
+      toastError(err.response?.data?.message || err.message || 'Failed to submit booking');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCancelBooking = async (bookingId) => {
+    try {
+      await api.put(`/bookings/${bookingId}/cancel`);
+      toastSuccess('Booking request cancelled successfully.');
+      fetchData();
+    } catch (err) {
+      toastError(err.response?.data?.message || err.message || 'Failed to cancel booking');
     }
   };
 
@@ -75,10 +91,49 @@ export const MyBookings = () => {
             Submit room allocation requests and track approval lifecycle.
           </p>
         </div>
-        <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
-          New Room Booking
-        </Button>
+        {!activeBooking ? (
+          <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
+            New Room Booking
+          </Button>
+        ) : (
+          <Button variant="secondary" icon={Bed} disabled title="You already have an active room booking">
+            Room Active (1 Max)
+          </Button>
+        )}
       </div>
+
+      {activeBooking && (
+        <div
+          style={{
+            padding: '1rem 1.25rem',
+            backgroundColor: 'rgba(59, 130, 246, 0.08)',
+            border: '1px solid var(--primary)',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Bed size={20} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
+                Active Allocation: Room {activeBooking.room?.roomNumber} ({activeBooking.status})
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
+                You already hold an active room booking. Under hostel policy, each student can hold at most one active room allocation.
+              </div>
+            </div>
+          </div>
+          {activeBooking.status === 'APPROVED' && (
+            <Link to="/student/payments" className="btn btn-primary btn-sm">
+              Pay Room Rent <ArrowRight size={14} />
+            </Link>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <LoadingSpinner text="Loading your bookings..." />
@@ -116,9 +171,17 @@ export const MyBookings = () => {
                       <Link to="/student/payments" className="btn btn-primary btn-sm">
                         Pay Rent <ArrowRight size={14} />
                       </Link>
+                    ) : b.status === 'PENDING' ? (
+                      <Button
+                        variant="outlineDanger"
+                        size="sm"
+                        onClick={() => handleCancelBooking(b.id)}
+                      >
+                        Cancel Request
+                      </Button>
                     ) : (
                       <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                        {b.status === 'PENDING' ? 'Under Review' : 'Closed'}
+                        Closed
                       </span>
                     )}
                   </td>

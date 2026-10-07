@@ -48,6 +48,7 @@ export const Login = () => {
         navigate('/student/dashboard', { replace: true });
       }
     } catch (err) {
+      setPassword('');
       setErrorMessage(err.message || 'Invalid username or password.');
       toastError(err.message || 'Login failed.');
     } finally {
@@ -123,6 +124,7 @@ export const Login = () => {
           <Input
             label="Username or Email"
             id="username"
+            name="username"
             type="text"
             icon={UserIcon}
             value={username}
@@ -135,6 +137,7 @@ export const Login = () => {
           <Input
             label="Password"
             id="password"
+            name="password"
             type="password"
             icon={Lock}
             value={password}

@@ -190,10 +190,10 @@ export const AdminDashboard = () => {
             </div>
             <div>
               <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                Hostel Blocks
+                Total Rooms
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)', marginTop: '0.25rem' }}>
-                {stats?.totalHostels || 3} Wings
+                {stats?.totalRooms || 0} Rooms
               </div>
             </div>
           </div>

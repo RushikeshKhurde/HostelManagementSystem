@@ -1,5 +1,6 @@
 package com.hostel.management.controller;
 
+import com.hostel.management.dto.BookingResponse;
 import com.hostel.management.model.*;
 import com.hostel.management.repository.*;
 import com.hostel.management.security.UserPrincipal;
@@ -7,10 +8,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -29,6 +32,7 @@ public class DashboardController {
 
     @GetMapping("/stats")
     @PreAuthorize("hasRole('ADMIN')")
+    @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> getAdminStats() {
         long totalUsers = userRepository.count();
         long totalStudents = userRepository.countByRole(Role.USER);
@@ -40,10 +44,10 @@ public class DashboardController {
         int availableBeds = Math.max(0, totalCapacity - occupiedBeds);
 
         List<Payment> payments = paymentRepository.findAll();
-        double totalRevenue = payments.stream()
+        BigDecimal totalRevenue = payments.stream()
                 .filter(p -> p.getStatus() == Payment.PaymentStatus.SUCCESS)
-                .mapToDouble(Payment::getAmount)
-                .sum();
+                .map(Payment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         List<Booking> bookings = bookingRepository.findAll();
         long pendingBookings = bookings.stream().filter(b -> b.getStatus() == Booking.BookingStatus.PENDING).count();
@@ -53,7 +57,6 @@ public class DashboardController {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalUsers", totalUsers);
         stats.put("totalStudents", totalStudents);
-        stats.put("totalHostels", 3);
         stats.put("totalRooms", totalRooms);
         stats.put("occupiedRooms", occupiedRooms);
         stats.put("totalCapacity", totalCapacity);
@@ -74,6 +77,7 @@ public class DashboardController {
 
     @GetMapping("/student-stats")
     @PreAuthorize("hasRole('USER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> getStudentStats(@AuthenticationPrincipal UserPrincipal principal) {
         Long studentId = principal.getUser().getId();
 
@@ -84,10 +88,10 @@ public class DashboardController {
                 .orElse(bookings.stream().filter(b -> b.getStatus() == Booking.BookingStatus.PENDING).findFirst().orElse(null));
 
         List<Payment> payments = paymentRepository.findByBookingStudentId(studentId);
-        double totalPaid = payments.stream()
+        BigDecimal totalPaid = payments.stream()
                 .filter(p -> p.getStatus() == Payment.PaymentStatus.SUCCESS)
-                .mapToDouble(Payment::getAmount)
-                .sum();
+                .map(Payment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         List<Complaint> complaints = complaintRepository.findByStudentIdOrderByCreatedAtDesc(studentId);
         List<LeaveRequest> leaves = leaveRequestRepository.findByStudentIdOrderByCreatedAtDesc(studentId);
@@ -96,10 +100,8 @@ public class DashboardController {
         List<Map<String, String>> roommates = new ArrayList<>();
         if (activeBooking != null && activeBooking.getRoom() != null && activeBooking.getStatus() == Booking.BookingStatus.APPROVED) {
             Long roomId = activeBooking.getRoom().getId();
-            List<Booking> roomBookings = bookingRepository.findAll().stream()
-                    .filter(b -> b.getRoom() != null && b.getRoom().getId().equals(roomId)
-                            && b.getStatus() == Booking.BookingStatus.APPROVED
-                            && !b.getStudent().getId().equals(studentId))
+            List<Booking> roomBookings = bookingRepository.findByRoomIdAndStatus(roomId, Booking.BookingStatus.APPROVED).stream()
+                    .filter(b -> !b.getStudent().getId().equals(studentId))
                     .collect(Collectors.toList());
 
             for (Booking b : roomBookings) {
@@ -112,7 +114,7 @@ public class DashboardController {
         }
 
         Map<String, Object> stats = new HashMap<>();
-        stats.put("activeBooking", activeBooking);
+        stats.put("activeBooking", activeBooking != null ? BookingResponse.fromEntity(activeBooking) : null);
         stats.put("totalPaid", totalPaid);
         stats.put("totalBookings", bookings.size());
         stats.put("totalComplaints", complaints.size());
@@ -126,6 +128,7 @@ public class DashboardController {
 
     @GetMapping("/warden-stats")
     @PreAuthorize("hasAnyRole('ADMIN', 'WARDEN')")
+    @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> getWardenStats() {
         long totalStudents = userRepository.countByRole(Role.USER);
         List<Room> rooms = roomRepository.findAll();

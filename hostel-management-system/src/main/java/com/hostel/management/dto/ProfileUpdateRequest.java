@@ -33,7 +33,7 @@ public class ProfileUpdateRequest {
     private String emailOtp;
 
     @NotBlank(message = "Mobile number is required")
-    @Pattern(regexp = "^[0-9]{10}$", message = "Mobile number must be exactly 10 digits")
+    @Pattern(regexp = ValidationConstants.MOBILE_PATTERN, message = ValidationConstants.MOBILE_MESSAGE)
     private String mobileNumber;
 
     private String gender;

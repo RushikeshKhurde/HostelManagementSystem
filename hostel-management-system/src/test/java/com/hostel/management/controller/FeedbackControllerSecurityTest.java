@@ -65,11 +65,11 @@ class FeedbackControllerSecurityTest {
     }
 
     @Test
-    @DisplayName("Security: Unauthenticated user accessing questions is rejected (403 Forbidden)")
+    @DisplayName("Security: Unauthenticated user accessing questions is rejected (401 Unauthorized)")
     void testGetQuestionsUnauthenticated() throws Exception {
         SecurityContextHolder.clearContext();
         mockMvc.perform(get("/api/feedback/questions"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

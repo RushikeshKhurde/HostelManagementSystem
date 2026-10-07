@@ -1,0 +1,91 @@
+warning: in the working copy of 'frontend/src/pages/Login.jsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/frontend/src/pages/Login.jsx b/frontend/src/pages/Login.jsx[m
+[1mindex 1221bff..9387793 100644[m
+[1m--- a/frontend/src/pages/Login.jsx[m
+[1m+++ b/frontend/src/pages/Login.jsx[m
+[36m@@ -15,6 +15,16 @@[m [mexport const Login = () => {[m
+   const [password, setPassword] = useState('');[m
+   const [loading, setLoading] = useState(false);[m
+   const [errorMessage, setErrorMessage] = useState('');[m
+[32m+[m[32m  const [isReadOnly, setIsReadOnly] = useState(true);[m
+[32m+[m
+[32m+[m[32m  React.useEffect(() => {[m
+[32m+[m[32m    setUsername('');[m
+[32m+[m[32m    setPassword('');[m
+[32m+[m[32m    const timer = setTimeout(() => {[m
+[32m+[m[32m      setIsReadOnly(false);[m
+[32m+[m[32m    }, 200);[m
+[32m+[m[32m    return () => clearTimeout(timer);[m
+[32m+[m[32m  }, []);[m
+ [m
+   React.useEffect(() => {[m
+     if (user) {[m
+[36m@@ -48,6 +58,7 @@[m [mexport const Login = () => {[m
+         navigate('/student/dashboard', { replace: true });[m
+       }[m
+     } catch (err) {[m
+[32m+[m[32m      setPassword('');[m
+       setErrorMessage(err.message || 'Invalid username or password.');[m
+       toastError(err.message || 'Login failed.');[m
+     } finally {[m
+[36m@@ -119,28 +130,57 @@[m [mexport const Login = () => {[m
+           </div>[m
+         )}[m
+ [m
+[31m-        <form onSubmit={handleSubmit} noValidate>[m
+[32m+[m[32m        <form onSubmit={handleSubmit} autoComplete="off" noValidate>[m
+[32m+[m[32m          {/* Hidden trap inputs to prevent aggressive browser autofill */}[m
+[32m+[m[32m          <input[m
+[32m+[m[32m            type="text"[m
+[32m+[m[32m            name="prevent_autofill_username"[m
+[32m+[m[32m            style={{ display: 'none' }}[m
+[32m+[m[32m            tabIndex={-1}[m
+[32m+[m[32m            aria-hidden="true"[m
+[32m+[m[32m            autoComplete="off"[m
+[32m+[m[32m          />[m
+[32m+[m[32m          <input[m
+[32m+[m[32m            type="password"[m
+[32m+[m[32m            name="prevent_autofill_password"[m
+[32m+[m[32m            style={{ display: 'none' }}[m
+[32m+[m[32m            tabIndex={-1}[m
+[32m+[m[32m            aria-hidden="true"[m
+[32m+[m[32m            autoComplete="off"[m
+[32m+[m[32m          />[m
+[32m+[m
+           <Input[m
+             label="Username or Email"[m
+             id="username"[m
+[32m+[m[32m            name="username"[m
+             type="text"[m
+             icon={UserIcon}[m
+             value={username}[m
+             onChange={(e) => setUsername(e.target.value)}[m
+[32m+[m[32m            onFocus={() => setIsReadOnly(false)}[m
+[32m+[m[32m            onClick={() => setIsReadOnly(false)}[m
+[32m+[m[32m            readOnly={isReadOnly}[m
+             placeholder="Enter your username or email"[m
+[31m-            autoComplete="username"[m
+[32m+[m[32m            autoComplete="off"[m
+[32m+[m[32m            autoCorrect="off"[m
+[32m+[m[32m            autoCapitalize="none"[m
+[32m+[m[32m            spellCheck="false"[m
+             required[m
+           />[m
+ [m
+           <Input[m
+             label="Password"[m
+             id="password"[m
+[32m+[m[32m            name="password"[m
+             type="password"[m
+             icon={Lock}[m
+             value={password}[m
+             onChange={(e) => setPassword(e.target.value)}[m
+[32m+[m[32m            onFocus={() => setIsReadOnly(false)}[m
+[32m+[m[32m            onClick={() => setIsReadOnly(false)}[m
+[32m+[m[32m            readOnly={isReadOnly}[m
+             placeholder="Enter your password"[m
+[31m-            autoComplete="current-password"[m
+[32m+[m[32m            autoComplete="new-password"[m
+             required[m
+           />[m
+ [m

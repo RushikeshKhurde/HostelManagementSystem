@@ -5,6 +5,7 @@ import com.hostel.management.dto.LoginRequest;
 import com.hostel.management.dto.ProfileUpdateRequest;
 import com.hostel.management.dto.RegisterRequest;
 import com.hostel.management.dto.ResetPasswordRequest;
+import com.hostel.management.dto.ValidationConstants;
 import com.hostel.management.exception.ApiException;
 import com.hostel.management.model.OtpVerification;
 import com.hostel.management.model.Role;
@@ -51,15 +52,11 @@ public class AuthService {
             throw new ApiException("Username '" + username + "' is reserved for system administration", HttpStatus.BAD_REQUEST);
         }
 
-        if (request.getRole() != null && ("WARDEN".equalsIgnoreCase(request.getRole()) || "ADMIN".equalsIgnoreCase(request.getRole()))) {
-            throw new ApiException("Public registration cannot assign administrative roles", HttpStatus.BAD_REQUEST);
-        }
-
-        if (userRepository.existsByUsername(username)) {
+        if (userRepository.existsByUsernameIgnoreCase(username)) {
             throw new ApiException("Username '" + username + "' is already taken", HttpStatus.CONFLICT);
         }
-        if (userRepository.existsByEmail(email)) {
-            throw new ApiException("Email address is already registered.", HttpStatus.CONFLICT);
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new ApiException("Email '" + email + "' is already registered", HttpStatus.CONFLICT);
         }
         if (userRepository.existsByMobileNumber(mobile)) {
             throw new ApiException("Mobile number is already registered", HttpStatus.CONFLICT);
@@ -164,7 +161,7 @@ public class AuthService {
 
         // Check if email changed: requires uniqueness and updates email directly without OTP
         if (emailChanged) {
-            if (userRepository.existsByEmail(newEmail)) {
+            if (userRepository.existsByEmailIgnoreCase(newEmail)) {
                 throw new ApiException("Email address '" + newEmail + "' is already in use by another account", HttpStatus.CONFLICT);
             }
             user.setEmail(newEmail);
@@ -187,8 +184,8 @@ public class AuthService {
             if (!passwordEncoder.matches(req.getCurrentPassword(), user.getPassword())) {
                 throw new ApiException("Current password does not match our records", HttpStatus.BAD_REQUEST);
             }
-            if (req.getNewPassword().length() < 6) {
-                throw new ApiException("New password must be at least 6 characters long", HttpStatus.BAD_REQUEST);
+            if (!req.getNewPassword().matches(ValidationConstants.PASSWORD_PATTERN)) {
+                throw new ApiException(ValidationConstants.PASSWORD_MESSAGE, HttpStatus.BAD_REQUEST);
             }
             user.setPassword(passwordEncoder.encode(req.getNewPassword()));
         }

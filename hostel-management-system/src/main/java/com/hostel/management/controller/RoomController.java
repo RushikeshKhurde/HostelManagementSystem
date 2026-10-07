@@ -1,6 +1,7 @@
 package com.hostel.management.controller;
 
-import com.hostel.management.model.Room;
+import com.hostel.management.dto.RoomRequest;
+import com.hostel.management.dto.RoomResponse;
 import com.hostel.management.service.RoomService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,25 +19,31 @@ public class RoomController {
     private final RoomService roomService;
 
     @GetMapping
-    public ResponseEntity<List<Room>> getAllRooms() {
+    public ResponseEntity<List<RoomResponse>> getAllRooms() {
         return ResponseEntity.ok(roomService.getAllRooms());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Room> getRoom(@PathVariable Long id) {
+    public ResponseEntity<RoomResponse> getRoom(@PathVariable Long id) {
         return ResponseEntity.ok(roomService.getRoomById(id));
+    }
+
+    @GetMapping({"/{id}/students", "/{id}/occupants"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'WARDEN')")
+    public ResponseEntity<List<com.hostel.management.dto.RoomOccupantResponse>> getRoomOccupants(@PathVariable Long id) {
+        return ResponseEntity.ok(roomService.getRoomOccupants(id));
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Room> addRoom(@Valid @RequestBody Room room) {
-        return ResponseEntity.ok(roomService.addRoom(room));
+    public ResponseEntity<RoomResponse> addRoom(@Valid @RequestBody RoomRequest request) {
+        return ResponseEntity.ok(roomService.addRoom(request));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Room> updateRoom(@PathVariable Long id, @RequestBody Room room) {
-        return ResponseEntity.ok(roomService.updateRoom(id, room));
+    public ResponseEntity<RoomResponse> updateRoom(@PathVariable Long id, @Valid @RequestBody RoomRequest request) {
+        return ResponseEntity.ok(roomService.updateRoom(id, request));
     }
 
     @DeleteMapping("/{id}")

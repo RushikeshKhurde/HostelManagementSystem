@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "rooms")
 @Data
@@ -29,10 +31,11 @@ public class Room {
     private Integer capacity;
 
     @Column(nullable = false)
-    private Integer occupied;
+    @Builder.Default
+    private Integer occupied = 0;
 
-    @Column(nullable = false)
-    private Double pricePerMonth;
+    @Column(name = "price_per_month", nullable = false, precision = 10, scale = 2)
+    private BigDecimal pricePerMonth;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
