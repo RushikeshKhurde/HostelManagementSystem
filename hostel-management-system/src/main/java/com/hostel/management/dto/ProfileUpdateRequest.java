@@ -22,8 +22,15 @@ public class ProfileUpdateRequest {
     private String fullName;
 
     @NotBlank(message = "Email is required")
-    @Email(message = "Email must be a valid email format")
+    @Pattern(regexp = "^[^A-Z]*$", message = "Email must be in lowercase.")
+    @Pattern(
+            regexp = "^[a-zA-Z0-9._%+-]+@([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$",
+            message = "Please enter a valid email address (e.g., username@domain.com)."
+    )
     private String email;
+
+    // 6-digit OTP code, required only when changing email address
+    private String emailOtp;
 
     @NotBlank(message = "Mobile number is required")
     @Pattern(regexp = ValidationConstants.MOBILE_PATTERN, message = ValidationConstants.MOBILE_MESSAGE)

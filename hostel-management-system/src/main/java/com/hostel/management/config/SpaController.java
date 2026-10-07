@@ -10,6 +10,7 @@ public class SpaController {
         "/login",
         "/register",
         "/profile",
+        "/forgot-password",
         "/admin/**",
         "/student/**",
         "/warden/**"

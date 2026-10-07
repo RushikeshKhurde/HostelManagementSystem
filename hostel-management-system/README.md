@@ -1,6 +1,6 @@
 # Hostel Management System
 
-A full-stack Hostel Management System built with **Spring Boot 3 (Java 17)**, **Spring Security + JWT**, **MySQL**, and a vanilla HTML/CSS/JS frontend.
+A full-stack Hostel Management System built with **Spring Boot 3 (Java 21)**, **Spring Security + JWT**, **MySQL**, and a vanilla HTML/CSS/JS frontend.
 
 ## Features
 
@@ -23,7 +23,7 @@ A full-stack Hostel Management System built with **Spring Boot 3 (Java 17)**, **
 
 | Layer      | Technology |
 |------------|------------|
-| Backend    | Java 17, Spring Boot 3.2.5, Spring Web, Spring Data JPA, Spring Security |
+| Backend    | Java 21, Spring Boot 3.2.5, Spring Web, Spring Data JPA, Spring Security |
 | Auth       | JWT (jjwt), BCryptPasswordEncoder |
 | Database   | MySQL 8 (H2 in-memory option for quick testing) |
 | Frontend   | HTML5, CSS3, vanilla JavaScript (served as static files by Spring Boot) |
@@ -64,7 +64,7 @@ hostel-management-system/
 
 Install these before you start:
 
-1. **Java Development Kit (JDK) 17 or later**
+1. **Java Development Kit (JDK) 21 or later**
    Check with: `java -version`
 2. **Maven** (optional — IntelliJ has Maven built in, and a Maven wrapper isn't required)
 3. **MySQL Server 8.x** (Community edition is fine) — or skip this and use the built-in H2 database for a quick test run (see Part 4).
@@ -94,9 +94,9 @@ Install these before you start:
 3. On the Welcome screen, click **Open** (or `File → Open` if a project is already open).
 4. Select the `hostel-management-system` folder (the one containing `pom.xml`) and click **OK**.
 5. IntelliJ will detect it as a **Maven project** and show a notification to "Load Maven Project" — click it (or IntelliJ will auto-import). This downloads all dependencies listed in `pom.xml`; it may take a minute or two the first time.
-6. Once indexing/import finishes, confirm the Project SDK is Java 17:
-   - `File → Project Structure → Project` → set **SDK** to a JDK 17 installation (click "Add SDK" if you don't have one listed, and point it at your JDK 17 install folder).
-   - Also check `File → Project Structure → Modules` uses language level 17.
+6. Once indexing/import finishes, confirm the Project SDK is Java 21:
+   - `File → Project Structure → Project` → set **SDK** to a JDK 21 installation (click "Add SDK" if you don't have one listed, and point it at your JDK 21 install folder).
+   - Also check `File → Project Structure → Modules` uses language level 21.
 
 ---
 

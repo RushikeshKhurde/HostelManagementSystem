@@ -24,5 +24,8 @@ public class AuthResponse {
     private LocalDate dateOfBirth;
     private String address;
     private String status;
+    private String studentId;
+    private String profilePhoto;
+    private boolean emailVerified;
     private LocalDateTime createdAt;
 }

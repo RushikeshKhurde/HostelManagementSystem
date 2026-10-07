@@ -57,6 +57,16 @@ public class User {
     @Column(length = 255)
     private String address;
 
+    @Column(name = "student_id", unique = true, length = 30)
+    private String studentId;
+
+    @Column(name = "profile_photo", length = 255)
+    private String profilePhoto;
+
+    @Column(name = "email_verified", nullable = false)
+    @Builder.Default
+    private boolean emailVerified = true;
+
     @Column(length = 20, nullable = false)
     @Builder.Default
     private String status = "ACTIVE";

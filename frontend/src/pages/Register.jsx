@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -26,12 +26,6 @@ export const Register = () => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-
-  React.useEffect(() => {
-    if (user) {
-      navigate(user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard', { replace: true });
-    }
-  }, [user, navigate]);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -108,6 +102,12 @@ export const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  useEffect(() => {
+    if (user) {
+      navigate(user.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -117,7 +117,7 @@ export const Register = () => {
       const payload = {
         fullName: formData.fullName.trim(),
         username: formData.username.trim(),
-        email: formData.email,
+        email: formData.email.trim().toLowerCase(),
         mobileNumber: formData.mobileNumber.trim(),
         password: formData.password,
         confirmPassword: formData.confirmPassword,
