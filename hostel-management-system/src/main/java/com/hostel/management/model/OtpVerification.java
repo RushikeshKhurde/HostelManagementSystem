@@ -21,7 +21,6 @@ public class OtpVerification {
     public enum OtpType {
         REGISTRATION_EMAIL,
         PASSWORD_RESET_EMAIL,
-        PASSWORD_RESET_MOBILE,
         EMAIL_CHANGE
     }
 

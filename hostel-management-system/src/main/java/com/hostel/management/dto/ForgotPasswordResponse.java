@@ -1,6 +1,5 @@
 package com.hostel.management.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,14 +9,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class VerifyOtpRequest {
+public class ForgotPasswordResponse {
 
+    private String message;
     private String requestId;
-
-    private String identifier;
-
-    @NotBlank(message = "OTP is required")
-    private String otp;
-
-    private String type;
+    private String destinationMasked;
+    private long expiresInSeconds;
+    private long resendCooldownSeconds;
 }

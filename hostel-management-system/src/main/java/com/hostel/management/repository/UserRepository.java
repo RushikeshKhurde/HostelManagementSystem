@@ -13,7 +13,9 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsername(String username);
+    Optional<User> findByUsernameIgnoreCase(String username);
     Optional<User> findByEmail(String email);
+    Optional<User> findByEmailIgnoreCase(String email);
     Optional<User> findByMobileNumber(String mobileNumber);
 
     @Query("SELECT u FROM User u WHERE u.username = :identifier OR u.email = :identifier OR LOWER(u.username) = LOWER(:identifier) OR LOWER(u.email) = LOWER(:identifier)")

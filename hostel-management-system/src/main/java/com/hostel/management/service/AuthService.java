@@ -4,10 +4,8 @@ import com.hostel.management.dto.AuthResponse;
 import com.hostel.management.dto.LoginRequest;
 import com.hostel.management.dto.ProfileUpdateRequest;
 import com.hostel.management.dto.RegisterRequest;
-import com.hostel.management.dto.ResetPasswordRequest;
 import com.hostel.management.dto.ValidationConstants;
 import com.hostel.management.exception.ApiException;
-import com.hostel.management.model.OtpVerification;
 import com.hostel.management.model.Role;
 import com.hostel.management.model.User;
 import com.hostel.management.repository.UserRepository;
@@ -30,7 +28,6 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final StudentIdGeneratorService studentIdGeneratorService;
-    private final OtpService otpService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -214,101 +211,6 @@ public class AuthService {
         user.setUpdatedAt(LocalDateTime.now());
         User saved = userRepository.save(user);
         return mapToAuthResponse(saved, null);
-    }
-
-    // ==========================================
-    // FORGOT PASSWORD FLOWS (EMAIL & MOBILE)
-    // ==========================================
-
-    @Transactional
-    public void forgotPasswordRequestOtp(String rawIdentifier, String rawType) {
-        if (rawIdentifier == null || rawIdentifier.isBlank()) {
-            throw new ApiException("Please enter your registered email or mobile number", HttpStatus.BAD_REQUEST);
-        }
-
-        OtpVerification.OtpType type;
-        if ("MOBILE".equalsIgnoreCase(rawType)) {
-            type = OtpVerification.OtpType.PASSWORD_RESET_MOBILE;
-            String mobile = normalizeMobile(rawIdentifier);
-            if (!userRepository.existsByMobileNumber(mobile)) {
-                throw new ApiException("No registered account found with mobile number " + mobile, HttpStatus.NOT_FOUND);
-            }
-            otpService.sendPasswordResetOtp(mobile, type);
-        } else {
-            type = OtpVerification.OtpType.PASSWORD_RESET_EMAIL;
-            String email = rawIdentifier.trim().toLowerCase();
-            if (!userRepository.existsByEmail(email)) {
-                throw new ApiException("No registered account found with email address " + email, HttpStatus.NOT_FOUND);
-            }
-            otpService.sendPasswordResetOtp(email, type);
-        }
-    }
-
-    @Transactional
-    public String forgotPasswordVerifyOtp(String rawIdentifier, String rawType, String otp) {
-        boolean isMobile = "MOBILE".equalsIgnoreCase(rawType);
-        String cleanIdentifier = isMobile
-                ? normalizeMobile(rawIdentifier)
-                : rawIdentifier.trim().toLowerCase();
-
-        OtpVerification.OtpType type = isMobile
-                ? OtpVerification.OtpType.PASSWORD_RESET_MOBILE
-                : OtpVerification.OtpType.PASSWORD_RESET_EMAIL;
-
-        return otpService.verifyPasswordResetOtp(cleanIdentifier, type, otp);
-    }
-
-    @Transactional
-    public void resetPassword(ResetPasswordRequest req) {
-        if (!req.getNewPassword().equals(req.getConfirmPassword())) {
-            throw new ApiException("Passwords do not match", HttpStatus.BAD_REQUEST);
-        }
-
-        boolean isMobile = "MOBILE".equalsIgnoreCase(req.getType());
-        OtpVerification.OtpType type = isMobile
-                ? OtpVerification.OtpType.PASSWORD_RESET_MOBILE
-                : OtpVerification.OtpType.PASSWORD_RESET_EMAIL;
-
-        String cleanIdentifier = isMobile
-                ? normalizeMobile(req.getIdentifier())
-                : req.getIdentifier().trim().toLowerCase();
-
-        otpService.validateAndConsumeResetToken(cleanIdentifier, type, req.getResetToken());
-
-        User user;
-        if (isMobile) {
-            user = userRepository.findByMobileNumber(cleanIdentifier)
-                    .orElseThrow(() -> new ApiException("User not found", HttpStatus.NOT_FOUND));
-        } else {
-            user = userRepository.findByEmail(cleanIdentifier)
-                    .orElseThrow(() -> new ApiException("User not found", HttpStatus.NOT_FOUND));
-        }
-
-        user.setPassword(passwordEncoder.encode(req.getNewPassword()));
-        user.setUpdatedAt(LocalDateTime.now());
-        userRepository.save(user);
-    }
-
-    private static final java.util.regex.Pattern INDIAN_MOBILE_REGEX = java.util.regex.Pattern.compile("^[6-9]\\d{9}$");
-
-    private String normalizeMobile(String raw) {
-        if (raw == null || raw.trim().isEmpty()) {
-            throw new ApiException("Please enter your registered mobile number", HttpStatus.BAD_REQUEST);
-        }
-        String digits = raw.replaceAll("\\D", "");
-        if (digits.length() == 12 && digits.startsWith("91")) {
-            digits = digits.substring(2);
-        } else if (digits.length() == 11 && digits.startsWith("0")) {
-            digits = digits.substring(1);
-        }
-        if (!INDIAN_MOBILE_REGEX.matcher(digits).matches()) {
-            throw new ApiException("Please enter a valid 10-digit Indian mobile number starting with 6-9.", HttpStatus.BAD_REQUEST);
-        }
-        return digits;
-    }
-
-    public OtpService getOtpService() {
-        return this.otpService;
     }
 
     private AuthResponse mapToAuthResponse(User user, String token) {
