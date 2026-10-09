@@ -138,14 +138,25 @@ export const FeeManagement = () => {
             <tbody>
               {filteredPayments.map((p) => (
                 <tr key={p.id}>
-                  <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>{p.transactionRef}</td>
+                  <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>
+                    {p.transactionRef}
+                    {p.razorpayOrderId && (
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                        Order: {p.razorpayOrderId}
+                      </div>
+                    )}
+                  </td>
                   <td>
                     <div style={{ fontWeight: 600 }}>{p.booking?.student?.fullName}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.booking?.student?.email}</div>
                   </td>
                   <td>Room {p.booking?.room?.roomNumber}</td>
                   <td style={{ fontWeight: 700, color: 'var(--success)' }}>₹{p.amount?.toLocaleString('en-IN')}</td>
-                  <td><span className="badge badge-neutral">{p.method}</span></td>
+                  <td>
+                    <span className={`badge ${p.method === 'RAZORPAY' ? 'badge-primary' : 'badge-neutral'}`}>
+                      {p.method}
+                    </span>
+                  </td>
                   <td>{p.paidAt ? new Date(p.paidAt).toLocaleString() : 'N/A'}</td>
                   <td><Badge status={p.status} /></td>
                   <td style={{ textAlign: 'right' }}>
@@ -184,7 +195,9 @@ export const FeeManagement = () => {
             <div style={{ textAlign: 'center', padding: '1rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
               <CheckCircle2 size={36} color="var(--success)" style={{ margin: '0 auto 0.5rem' }} />
               <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>₹{selectedPayment.amount?.toLocaleString('en-IN')}</div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Payment Successful</div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                {selectedPayment.status === 'SUCCESS' ? 'Payment Verified & Confirmed' : selectedPayment.status}
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -192,6 +205,21 @@ export const FeeManagement = () => {
                 <span style={{ color: 'var(--text-muted)' }}>Transaction Ref</span>
                 <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{selectedPayment.transactionRef}</span>
               </div>
+
+              {selectedPayment.razorpayOrderId && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Razorpay Order ID</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>{selectedPayment.razorpayOrderId}</span>
+                </div>
+              )}
+
+              {selectedPayment.razorpayPaymentId && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Razorpay Payment ID</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>{selectedPayment.razorpayPaymentId}</span>
+                </div>
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Student</span>
                 <span style={{ fontWeight: 600 }}>{selectedPayment.booking?.student?.fullName}</span>
@@ -202,7 +230,9 @@ export const FeeManagement = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Payment Method</span>
-                <span style={{ fontWeight: 600 }}>{selectedPayment.method}</span>
+                <span className={`badge ${selectedPayment.method === 'RAZORPAY' ? 'badge-primary' : 'badge-neutral'}`}>
+                  {selectedPayment.method}
+                </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Timestamp</span>

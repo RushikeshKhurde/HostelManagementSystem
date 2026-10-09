@@ -23,6 +23,8 @@ public class PaymentResponse {
     private String method;
     private String status;
     private LocalDateTime paidAt;
+    private String razorpayOrderId;
+    private String razorpayPaymentId;
 
     @Data
     @Builder
@@ -61,6 +63,8 @@ public class PaymentResponse {
                 .method(payment.getMethod() != null ? payment.getMethod().name() : null)
                 .status(payment.getStatus() != null ? payment.getStatus().name() : null)
                 .paidAt(payment.getPaidAt())
+                .razorpayOrderId(payment.getRazorpayOrderId())
+                .razorpayPaymentId(payment.getRazorpayPaymentId())
                 .build();
     }
 }
