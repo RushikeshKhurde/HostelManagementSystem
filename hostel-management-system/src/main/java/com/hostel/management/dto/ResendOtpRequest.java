@@ -10,14 +10,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class VerifyOtpRequest {
+public class ResendOtpRequest {
 
+    @NotBlank(message = "Request ID is required")
     private String requestId;
-
-    private String identifier;
-
-    @NotBlank(message = "OTP is required")
-    private String otp;
-
-    private String type;
 }

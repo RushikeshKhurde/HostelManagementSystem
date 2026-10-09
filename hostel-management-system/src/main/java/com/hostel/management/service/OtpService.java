@@ -26,7 +26,6 @@ public class OtpService {
     private final OtpVerificationRepository otpRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-    private final SmsService smsService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -34,8 +33,6 @@ public class OtpService {
     private static final int RESET_TOKEN_EXPIRY_MINUTES = 10;
     private static final int RATE_LIMIT_SECONDS = 30; // Minimum seconds between new requests
     private static final int MAX_ATTEMPTS = 5;
-
-
 
     @Transactional
     public void sendPasswordResetOtp(String identifier, OtpVerification.OtpType type) {
@@ -60,8 +57,6 @@ public class OtpService {
 
         if (type == OtpVerification.OtpType.PASSWORD_RESET_EMAIL) {
             emailService.sendOtpEmail(cleanId, otp, "Password Reset");
-        } else {
-            smsService.sendOtp(cleanId, otp, "Password Reset");
         }
     }
 
@@ -91,16 +86,7 @@ public class OtpService {
 
     private String cleanIdentifier(String identifier, OtpVerification.OtpType type) {
         if (identifier == null) return "";
-        if (type == OtpVerification.OtpType.PASSWORD_RESET_EMAIL || type == OtpVerification.OtpType.REGISTRATION_EMAIL || type == OtpVerification.OtpType.EMAIL_CHANGE) {
-            return identifier.trim().toLowerCase();
-        }
-        String digits = identifier.replaceAll("\\D", "");
-        if (digits.length() == 12 && digits.startsWith("91")) {
-            digits = digits.substring(2);
-        } else if (digits.length() == 11 && digits.startsWith("0")) {
-            digits = digits.substring(1);
-        }
-        return digits;
+        return identifier.trim().toLowerCase();
     }
 
     private String verifyOtpInternal(String identifier, OtpVerification.OtpType type, String otp, boolean generateResetToken) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -12,7 +12,6 @@ import {
   ArrowRight,
   ArrowLeft,
   Mail,
-  Phone,
   KeyRound,
   CheckCircle,
   RefreshCw,
@@ -32,9 +31,8 @@ export const Login = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Forgot password flow state: 'LOGIN' | 'CHOOSE_METHOD' | 'ENTER_IDENTIFIER' | 'VERIFY_OTP' | 'NEW_PASSWORD' | 'SUCCESS'
+  // Forgot password flow state: 'LOGIN' | 'ENTER_IDENTIFIER' | 'VERIFY_OTP' | 'NEW_PASSWORD' | 'SUCCESS'
   const [view, setView] = useState('LOGIN');
-  const [recoveryMethod, setRecoveryMethod] = useState('EMAIL'); // 'EMAIL' | 'MOBILE'
   const [identifier, setIdentifier] = useState('');
   const [requestId, setRequestId] = useState('');
   const [destinationMasked, setDestinationMasked] = useState('');
@@ -124,24 +122,19 @@ export const Login = () => {
     setErrorMessage('');
 
     if (!identifier.trim()) {
-      setErrorMessage(recoveryMethod === 'EMAIL' ? 'Please enter your registered email address.' : 'Please enter your registered mobile number.');
+      setErrorMessage('Please enter your registered email address.');
       return;
     }
 
-    if (recoveryMethod === 'EMAIL' && !identifier.includes('@')) {
+    if (!identifier.includes('@')) {
       setErrorMessage('Please enter a valid email address.');
-      return;
-    }
-
-    if (recoveryMethod === 'MOBILE' && !/^[6-9]\d{9}$/.test(identifier.trim())) {
-      setErrorMessage('Please enter a valid 10-digit mobile number starting with 6-9.');
       return;
     }
 
     setLoading(true);
     try {
       const res = await api.post('/auth/forgot-password/request', {
-        method: recoveryMethod,
+        method: 'EMAIL',
         identifier: identifier.trim(),
       });
 
@@ -332,7 +325,7 @@ export const Login = () => {
               <KeyRound size={26} />
             ) : view === 'VERIFY_OTP' ? (
               <ShieldCheck size={26} />
-            ) : view === 'CHOOSE_METHOD' || view === 'ENTER_IDENTIFIER' ? (
+            ) : view === 'ENTER_IDENTIFIER' ? (
               <Lock size={26} />
             ) : (
               <Building2 size={26} />
@@ -341,8 +334,7 @@ export const Login = () => {
 
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
             {view === 'LOGIN' && 'Welcome Back'}
-            {view === 'CHOOSE_METHOD' && 'Forgot Password'}
-            {view === 'ENTER_IDENTIFIER' && (recoveryMethod === 'EMAIL' ? 'Email Recovery' : 'Mobile Recovery')}
+            {view === 'ENTER_IDENTIFIER' && 'Forgot Password'}
             {view === 'VERIFY_OTP' && 'Verify OTP Code'}
             {view === 'NEW_PASSWORD' && 'Create New Password'}
             {view === 'SUCCESS' && 'Password Reset Successful'}
@@ -350,12 +342,8 @@ export const Login = () => {
 
           <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.35rem', lineHeight: '1.4' }}>
             {view === 'LOGIN' && 'Sign in to access your hostel account'}
-            {view === 'CHOOSE_METHOD' && 'Select how you want to receive your security verification code'}
-            {view === 'ENTER_IDENTIFIER' &&
-              (recoveryMethod === 'EMAIL'
-                ? 'Enter your registered email address to receive an OTP'
-                : 'Enter your registered 10-digit mobile number to receive an OTP')}
-            {view === 'VERIFY_OTP' && `A 6-digit OTP code was sent to ${destinationMasked || 'your contact channel'}`}
+            {view === 'ENTER_IDENTIFIER' && 'Enter your registered email address to receive a verification OTP code'}
+            {view === 'VERIFY_OTP' && `A 6-digit OTP code was sent to ${destinationMasked || 'your email'}`}
             {view === 'NEW_PASSWORD' && 'Enter and confirm your new secure account password'}
             {view === 'SUCCESS' && 'Your password has been changed. You can now log in with your new password.'}
           </p>
@@ -417,7 +405,7 @@ export const Login = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setView('CHOOSE_METHOD');
+                    setView('ENTER_IDENTIFIER');
                     setErrorMessage('');
                   }}
                   style={{
@@ -463,175 +451,20 @@ export const Login = () => {
           </form>
         )}
 
-        {/* ================= VIEW 2: CHOOSE VERIFICATION METHOD ================= */}
-        {view === 'CHOOSE_METHOD' && (
-          <div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem', marginBottom: '1.5rem' }}>
-              {/* Option 1: Email */}
-              <div
-                onClick={() => setRecoveryMethod('EMAIL')}
-                style={{
-                  padding: '1rem 1.125rem',
-                  borderRadius: 'var(--radius-lg)',
-                  border: `2px solid ${recoveryMethod === 'EMAIL' ? 'var(--primary)' : 'var(--border-color)'}`,
-                  backgroundColor: recoveryMethod === 'EMAIL' ? 'rgba(37, 99, 235, 0.04)' : 'var(--bg-card)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <div
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: recoveryMethod === 'EMAIL' ? 'var(--primary)' : 'var(--border-color)',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Mail size={20} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
-                    Verify with Email
-                  </div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
-                    Send a 6-digit OTP code to your registered email
-                  </div>
-                </div>
-                <div
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    borderRadius: '50%',
-                    border: `2px solid ${recoveryMethod === 'EMAIL' ? 'var(--primary)' : 'var(--text-muted)'}`,
-                    backgroundColor: recoveryMethod === 'EMAIL' ? 'var(--primary)' : 'transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {recoveryMethod === 'EMAIL' && (
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ffffff' }} />
-                  )}
-                </div>
-              </div>
-
-              {/* Option 2: Mobile Number */}
-              <div
-                onClick={() => setRecoveryMethod('MOBILE')}
-                style={{
-                  padding: '1rem 1.125rem',
-                  borderRadius: 'var(--radius-lg)',
-                  border: `2px solid ${recoveryMethod === 'MOBILE' ? 'var(--primary)' : 'var(--border-color)'}`,
-                  backgroundColor: recoveryMethod === 'MOBILE' ? 'rgba(37, 99, 235, 0.04)' : 'var(--bg-card)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <div
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: recoveryMethod === 'MOBILE' ? 'var(--primary)' : 'var(--border-color)',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Phone size={20} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
-                    Verify with Mobile Number
-                  </div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
-                    Send a 6-digit OTP code via SMS to your registered phone
-                  </div>
-                </div>
-                <div
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    borderRadius: '50%',
-                    border: `2px solid ${recoveryMethod === 'MOBILE' ? 'var(--primary)' : 'var(--text-muted)'}`,
-                    backgroundColor: recoveryMethod === 'MOBILE' ? 'var(--primary)' : 'transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {recoveryMethod === 'MOBILE' && (
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ffffff' }} />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => {
-                setErrorMessage('');
-                setView('ENTER_IDENTIFIER');
-              }}
-              style={{ width: '100%', padding: '0.75rem', fontSize: '0.9375rem' }}
-            >
-              Continue <ArrowRight size={16} />
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={resetToLogin}
-              style={{ width: '100%', marginTop: '0.75rem', padding: '0.75rem' }}
-            >
-              <ArrowLeft size={16} /> Back to Sign In
-            </Button>
-          </div>
-        )}
-
-        {/* ================= VIEW 3: ENTER REGISTERED IDENTIFIER ================= */}
+        {/* ================= VIEW 2: ENTER REGISTERED EMAIL ================= */}
         {view === 'ENTER_IDENTIFIER' && (
           <form onSubmit={handleRequestOtp} noValidate>
-            {recoveryMethod === 'EMAIL' ? (
-              <Input
-                label="Registered Email Address"
-                id="identifier-email"
-                type="email"
-                icon={Mail}
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="e.g. student@hostel.com"
-                required
-                autoFocus
-              />
-            ) : (
-              <Input
-                label="Registered 10-Digit Mobile Number"
-                id="identifier-mobile"
-                type="tel"
-                icon={Phone}
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                placeholder="e.g. 9876543210"
-                maxLength={10}
-                required
-                autoFocus
-              />
-            )}
+            <Input
+              label="Registered Email Address"
+              id="identifier-email"
+              type="email"
+              icon={Mail}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="e.g. student@hostel.com"
+              required
+              autoFocus
+            />
 
             <Button
               type="submit"
@@ -645,18 +478,15 @@ export const Login = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                setErrorMessage('');
-                setView('CHOOSE_METHOD');
-              }}
+              onClick={resetToLogin}
               style={{ width: '100%', marginTop: '0.75rem', padding: '0.75rem' }}
             >
-              <ArrowLeft size={16} /> Back
+              <ArrowLeft size={16} /> Back to Sign In
             </Button>
           </form>
         )}
 
-        {/* ================= VIEW 4: VERIFY OTP ================= */}
+        {/* ================= VIEW 3: VERIFY OTP ================= */}
         {view === 'VERIFY_OTP' && (
           <form onSubmit={handleVerifyOtp} noValidate>
             <div style={{ marginBottom: '1.25rem' }}>
@@ -760,7 +590,7 @@ export const Login = () => {
           </form>
         )}
 
-        {/* ================= VIEW 5: CREATE NEW PASSWORD ================= */}
+        {/* ================= VIEW 4: CREATE NEW PASSWORD ================= */}
         {view === 'NEW_PASSWORD' && (
           <form onSubmit={handleResetPassword} noValidate>
             <Input
@@ -813,7 +643,7 @@ export const Login = () => {
           </form>
         )}
 
-        {/* ================= VIEW 6: SUCCESS ================= */}
+        {/* ================= VIEW 5: SUCCESS ================= */}
         {view === 'SUCCESS' && (
           <div style={{ textAlign: 'center' }}>
             <div

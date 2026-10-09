@@ -2,12 +2,19 @@ package com.hostel.management.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ResetPasswordRequest {
 
-    @NotBlank(message = "Identifier (email or mobile number) is required")
+    private String requestId;
+
     private String identifier;
 
     @NotBlank(message = "Reset token is required")
