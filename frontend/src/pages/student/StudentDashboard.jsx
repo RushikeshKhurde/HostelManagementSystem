@@ -226,6 +226,9 @@ export const StudentDashboard = () => {
                     <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{n.title}</span>
                     <Badge status={n.priority} />
                   </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                    Published by: {n.publisherName || n.postedBy || 'Administration'}
+                  </div>
                   <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {n.content}
                   </p>

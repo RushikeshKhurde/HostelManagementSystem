@@ -12,6 +12,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/notices")
@@ -30,6 +31,12 @@ public class NoticeController {
     public ResponseEntity<NoticeResponse> createNotice(@AuthenticationPrincipal UserPrincipal principal,
                                                        @Valid @RequestBody NoticeRequest request) {
         return ResponseEntity.ok(noticeService.createNotice(principal, request));
+    }
+
+    @PostMapping("/check-duplicate")
+    @PreAuthorize("hasAnyRole('ADMIN', 'WARDEN')")
+    public ResponseEntity<Map<String, Object>> checkDuplicate(@Valid @RequestBody NoticeRequest request) {
+        return ResponseEntity.ok(noticeService.checkDuplicate(request));
     }
 
     @DeleteMapping("/{id}")

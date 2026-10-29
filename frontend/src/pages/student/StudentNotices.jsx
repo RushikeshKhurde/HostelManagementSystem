@@ -49,14 +49,17 @@ export const StudentNotices = () => {
           {notices.map((n) => (
             <div key={n.id} className="card card-hover" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)', backgroundColor: n.priority === 'URGENT' ? 'var(--danger-light)' : 'var(--primary-light)', color: n.priority === 'URGENT' ? 'var(--danger)' : 'var(--primary)' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                  <div style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)', backgroundColor: n.priority === 'URGENT' ? 'var(--danger-light)' : 'var(--primary-light)', color: n.priority === 'URGENT' ? 'var(--danger)' : 'var(--primary)', marginTop: '2px' }}>
                     <Megaphone size={20} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '1.125rem' }}>{n.title}</h3>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Published by {n.postedBy || 'Administration'} · {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : 'Recent'}
+                    <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0 }}>{n.title}</h3>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-main)', marginTop: '0.25rem', fontWeight: 600 }}>
+                      Published by: <span style={{ color: 'var(--primary)' }}>{n.publisherName || n.postedBy || 'Publisher unavailable'}</span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                      Audience: {n.targetAudience === 'ALL' ? 'All Students' : (n.targetAudience || 'All Students')} · Posted on {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : 'Recent'}
                     </div>
                   </div>
                 </div>
@@ -64,7 +67,7 @@ export const StudentNotices = () => {
                 <Badge status={n.priority} />
               </div>
 
-              <p style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              <p style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
                 {n.content}
               </p>
             </div>

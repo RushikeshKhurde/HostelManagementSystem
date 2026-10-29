@@ -51,7 +51,8 @@ public class DashboardController {
 
         List<Booking> bookings = bookingRepository.findAll();
         long pendingBookings = bookings.stream().filter(b -> b.getStatus() == Booking.BookingStatus.PENDING).count();
-        long pendingComplaints = complaintRepository.countByStatus(Complaint.ComplaintStatus.PENDING);
+        List<ComplaintVisibility> adminVisibilities = List.of(ComplaintVisibility.ADMIN_ONLY, ComplaintVisibility.WARDEN_AND_ADMIN);
+        long pendingComplaints = complaintRepository.countByStatusAndVisibilityIn(Complaint.ComplaintStatus.PENDING, adminVisibilities);
         long pendingLeaves = leaveRequestRepository.countByStatus(LeaveRequest.LeaveStatus.PENDING);
 
         Map<String, Object> stats = new HashMap<>();
@@ -140,7 +141,8 @@ public class DashboardController {
 
         List<Booking> bookings = bookingRepository.findAll();
         long pendingBookings = bookings.stream().filter(b -> b.getStatus() == Booking.BookingStatus.PENDING).count();
-        long pendingComplaints = complaintRepository.countByStatus(Complaint.ComplaintStatus.PENDING);
+        List<ComplaintVisibility> wardenVisibilities = List.of(ComplaintVisibility.WARDEN_ONLY, ComplaintVisibility.WARDEN_AND_ADMIN);
+        long pendingComplaints = complaintRepository.countByStatusAndVisibilityIn(Complaint.ComplaintStatus.PENDING, wardenVisibilities);
         long pendingLeaves = leaveRequestRepository.countByStatus(LeaveRequest.LeaveStatus.PENDING);
         long activeNotices = noticeRepository.count();
 

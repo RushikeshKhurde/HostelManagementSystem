@@ -4,10 +4,14 @@ import com.hostel.management.dto.*;
 import com.hostel.management.exception.ApiException;
 import com.hostel.management.model.*;
 import com.hostel.management.repository.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -21,6 +25,15 @@ public class FeedbackService {
     private final FeedbackQuestionRepository feedbackQuestionRepository;
     private final FeedbackQuestionOptionRepository feedbackQuestionOptionRepository;
     private final FeedbackSubmissionRepository feedbackSubmissionRepository;
+    private final FileStorageService fileStorageService;
+
+    @Getter
+    @AllArgsConstructor
+    public static class FeedbackImageResource {
+        private final Resource resource;
+        private final String contentType;
+        private final String filename;
+    }
 
     @Transactional(readOnly = true)
     public List<FeedbackQuestionDto> getActiveQuestions() {
@@ -44,7 +57,7 @@ public class FeedbackService {
     }
 
     @Transactional
-    public FeedbackSubmissionDto submitFeedback(User student, FeedbackSubmitRequest request) {
+    public FeedbackSubmissionDto submitFeedback(User student, FeedbackSubmitRequest request, MultipartFile image) {
         if (student == null) {
             throw new ApiException("Authentication required to submit feedback.", HttpStatus.UNAUTHORIZED);
         }
@@ -82,9 +95,38 @@ public class FeedbackService {
         Map<Long, FeedbackQuestion> activeQuestionMap = activeQuestions.stream()
                 .collect(Collectors.toMap(FeedbackQuestion::getId, Function.identity()));
 
+        // Process optional description
+        String description = null;
+        if (request.getDescription() != null) {
+            String trimmed = request.getDescription().trim();
+            if (trimmed.length() > 5000) {
+                throw new ApiException("Additional description cannot exceed 5000 characters.", HttpStatus.BAD_REQUEST);
+            }
+            if (!trimmed.isBlank()) {
+                description = trimmed;
+            }
+        }
+
+        // Process optional image
+        String imagePath = null;
+        String imageName = null;
+        String imageContentType = null;
+        if (image != null && !image.isEmpty()) {
+            FileStorageService.StoredFile stored = fileStorageService.storeFeedbackImage(image);
+            if (stored != null) {
+                imagePath = stored.getFilename();
+                imageName = stored.getOriginalFilename();
+                imageContentType = stored.getContentType();
+            }
+        }
+
         FeedbackSubmission submission = FeedbackSubmission.builder()
                 .student(student)
                 .submittedAt(LocalDateTime.now())
+                .description(description)
+                .imagePath(imagePath)
+                .imageName(imageName)
+                .imageContentType(imageContentType)
                 .answers(new ArrayList<>())
                 .build();
 
@@ -111,6 +153,11 @@ public class FeedbackService {
         return mapToDto(saved);
     }
 
+    @Transactional
+    public FeedbackSubmissionDto submitFeedback(User student, FeedbackSubmitRequest request) {
+        return submitFeedback(student, request, null);
+    }
+
     @Transactional(readOnly = true)
     public FeedbackSubmissionDto getMyFeedback(User student) {
         if (student == null) {
@@ -119,6 +166,35 @@ public class FeedbackService {
         return feedbackSubmissionRepository.findByStudentIdWithDetails(student.getId())
                 .map(this::mapToDto)
                 .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public FeedbackImageResource getFeedbackImage(Long submissionId, User currentUser) {
+        if (currentUser == null) {
+            throw new ApiException("Authentication required.", HttpStatus.UNAUTHORIZED);
+        }
+
+        FeedbackSubmission submission = feedbackSubmissionRepository.findById(submissionId)
+                .orElseThrow(() -> new ApiException("Feedback submission not found with id: " + submissionId, HttpStatus.NOT_FOUND));
+
+        boolean isStaff = currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.WARDEN;
+        boolean isOwner = submission.getStudent() != null && submission.getStudent().getId().equals(currentUser.getId());
+
+        if (!isStaff && !isOwner) {
+            throw new ApiException("You are not authorized to view this feedback image.", HttpStatus.FORBIDDEN);
+        }
+
+        if (submission.getImagePath() == null || submission.getImagePath().isBlank()) {
+            throw new ApiException("Feedback submission does not have an attached image.", HttpStatus.NOT_FOUND);
+        }
+
+        Resource resource = fileStorageService.loadFeedbackImageAsResource(submission.getImagePath());
+        String contentType = submission.getImageContentType();
+        if (contentType == null || contentType.isBlank()) {
+            contentType = "image/jpeg";
+        }
+
+        return new FeedbackImageResource(resource, contentType, submission.getImageName());
     }
 
     @Transactional
@@ -167,6 +243,9 @@ public class FeedbackService {
                         .build())
                 .collect(Collectors.toList());
 
+        boolean hasImage = sub.getImagePath() != null && !sub.getImagePath().isBlank();
+        String imageUrl = hasImage ? "/api/feedback/" + sub.getId() + "/image" : null;
+
         return FeedbackSubmissionDto.builder()
                 .id(sub.getId())
                 .studentId(sub.getStudent().getId())
@@ -175,6 +254,10 @@ public class FeedbackService {
                 .studentEmail(sub.getStudent().getEmail())
                 .submittedAt(sub.getSubmittedAt())
                 .answers(answerDtos)
+                .description(sub.getDescription())
+                .hasImage(hasImage)
+                .imageUrl(imageUrl)
+                .imageName(sub.getImageName())
                 .build();
     }
 }

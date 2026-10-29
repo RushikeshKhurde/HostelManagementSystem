@@ -6,7 +6,7 @@ import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
 import { EmptyState } from '../../components/feedback/EmptyState';
-import { CalendarDays, Plus } from 'lucide-react';
+import { CalendarDays, Plus, AlertCircle, Info } from 'lucide-react';
 
 export const MyLeave = () => {
   const { success: toastSuccess, error: toastError } = useToast();
@@ -40,12 +40,58 @@ export const MyLeave = () => {
     fetchLeaves();
   }, []);
 
+  const approvedLeaves = leaves.filter((l) => l.status === 'APPROVED');
+
+  const getConflictingApprovedLeave = (start, end) => {
+    if (!start || !end) return null;
+    const s = new Date(start);
+    const e = new Date(end);
+    if (isNaN(s.getTime()) || isNaN(e.getTime()) || s > e) return null;
+
+    return approvedLeaves.find((al) => {
+      const existingStart = new Date(al.startDate);
+      const existingEnd = new Date(al.endDate);
+      return s <= existingEnd && e >= existingStart;
+    });
+  };
+
+  const getNextAvailableDate = (endDateStr) => {
+    if (!endDateStr) return '';
+    const d = new Date(endDateStr);
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  };
+
+  const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      }
+      return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const selectedConflict = getConflictingApprovedLeave(formData.startDate, formData.endDate);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (new Date(formData.endDate) < new Date(formData.startDate)) {
       toastError('End date cannot be before start date.');
       return;
     }
+
+    if (selectedConflict) {
+      toastError(
+        `Overlaps with your approved leave from ${formatDateDisplay(selectedConflict.startDate)} to ${formatDateDisplay(selectedConflict.endDate)}.`
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       await api.post('/leaves', formData);
@@ -54,7 +100,8 @@ export const MyLeave = () => {
       setFormData({ leaveType: 'HOME_VISIT', startDate: '', endDate: '', reason: '', emergencyContact: '' });
       fetchLeaves();
     } catch (err) {
-      toastError(err.message || 'Failed to apply for leave');
+      const msg = err.response?.data?.message || err.message || 'Failed to apply for leave';
+      toastError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -123,6 +170,24 @@ export const MyLeave = () => {
         maxWidth="500px"
       >
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {approvedLeaves.length > 0 && (
+            <div style={{ padding: '0.65rem 0.85rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', fontSize: '0.8125rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                <Info size={14} color="var(--primary)" />
+                <span>Active Approved Leaves:</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-secondary)' }}>
+                {approvedLeaves.map((al) => (
+                  <li key={al.id} style={{ marginTop: '0.15rem' }}>
+                    <strong>{formatDateDisplay(al.startDate)}</strong> to <strong>{formatDateDisplay(al.endDate)}</strong> ({al.leaveType})
+                    {' — Available from: '}
+                    <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{formatDateDisplay(getNextAvailableDate(al.endDate))}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div>
             <label className="form-label">Leave Category</label>
             <select
@@ -161,6 +226,15 @@ export const MyLeave = () => {
               />
             </div>
           </div>
+
+          {selectedConflict && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem', color: '#b91c1c', fontSize: '0.8125rem', padding: '0.5rem 0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: 'var(--radius-md)' }}>
+              <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <span>
+                Your approved leave from <strong>{formatDateDisplay(selectedConflict.startDate)}</strong> to <strong>{formatDateDisplay(selectedConflict.endDate)}</strong> prevents you from applying for leave on overlapping dates. You can apply for leave starting <strong>{formatDateDisplay(getNextAvailableDate(selectedConflict.endDate))}</strong>.
+              </span>
+            </div>
+          )}
 
           <div>
             <label className="form-label">Guardian / Emergency Contact Number</label>

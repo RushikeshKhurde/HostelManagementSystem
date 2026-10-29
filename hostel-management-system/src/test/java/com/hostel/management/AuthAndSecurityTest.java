@@ -42,18 +42,35 @@ public class AuthAndSecurityTest {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private org.springframework.mail.javamail.JavaMailSender mailSender;
+
+    @Autowired
+    private com.hostel.management.service.EmailVerificationService emailVerificationService;
+
+    private String getRegistrationTokenForEmail(String email) {
+        emailVerificationService.sendOtp(new com.hostel.management.dto.SendEmailVerificationOtpRequest(email), "127.0.0.1");
+        String otp = emailVerificationService.getLatestDevOtp(email);
+        com.hostel.management.dto.VerifyEmailOtpResponse res = emailVerificationService.verifyOtp(new com.hostel.management.dto.VerifyEmailOtpRequest(email, otp));
+        return res.getRegistrationToken();
+    }
+
     @Test
     @DisplayName("Public registration always creates USER / STUDENT role")
     void testPublicRegistrationCreatesStudent() throws Exception {
         String timestamp = String.valueOf(System.currentTimeMillis());
         String uniqueUser = "testuser_" + timestamp;
+        String email = uniqueUser + "@example.com";
+        String token = getRegistrationTokenForEmail(email);
+
         RegisterRequest req = new RegisterRequest();
         req.setFullName("Test Student");
         req.setUsername(uniqueUser);
-        req.setEmail(uniqueUser + "@example.com");
+        req.setEmail(email);
         req.setMobileNumber("9" + timestamp.substring(timestamp.length() - 9));
         req.setPassword("Password@123");
         req.setConfirmPassword("Password@123");
+        req.setRegistrationToken(token);
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -65,6 +82,7 @@ public class AuthAndSecurityTest {
         User created = userRepository.findByUsername(uniqueUser).orElseThrow();
         assertEquals(Role.USER, created.getRole());
     }
+
 
     @Test
     @DisplayName("Login succeeds with valid credentials")
@@ -235,13 +253,16 @@ public class AuthAndSecurityTest {
     void testCaseInsensitiveDuplicateRegistrationRejected() throws Exception {
         String timestamp = String.valueOf(System.currentTimeMillis());
         String mixedCase = "Rushikesh_" + timestamp;
+        String email1 = "rushi1_" + timestamp + "@example.com";
+        String token1 = getRegistrationTokenForEmail(email1);
 
         RegisterRequest req1 = new RegisterRequest();
         req1.setFullName("Rushikesh One");
         req1.setUsername(mixedCase);
-        req1.setEmail("rushi1_" + timestamp + "@example.com");
+        req1.setEmail(email1);
         req1.setMobileNumber("9" + timestamp.substring(timestamp.length() - 9));
         req1.setPassword("Password@123");
+        req1.setRegistrationToken(token1);
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -249,12 +270,16 @@ public class AuthAndSecurityTest {
                 .andExpect(status().isOk());
 
         // Attempting to register with lower-case variation of same username
+        String email2 = "rushi2_" + timestamp + "@example.com";
+        String token2 = getRegistrationTokenForEmail(email2);
+
         RegisterRequest req2 = new RegisterRequest();
         req2.setFullName("Rushikesh Two");
         req2.setUsername(mixedCase.toLowerCase());
-        req2.setEmail("rushi2_" + timestamp + "@example.com");
+        req2.setEmail(email2);
         req2.setMobileNumber("8" + timestamp.substring(timestamp.length() - 9));
         req2.setPassword("Password@123");
+        req2.setRegistrationToken(token2);
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -290,12 +315,14 @@ public class AuthAndSecurityTest {
     @Test
     @DisplayName("Reserved admin and warden usernames are rejected in any case variation during public registration")
     void testReservedUsernamesRejectedInAnyCase() throws Exception {
+        String tokenAdmin = getRegistrationTokenForEmail("fakeadmin@example.com");
         RegisterRequest reqAdmin = new RegisterRequest();
         reqAdmin.setFullName("Fake Admin");
         reqAdmin.setUsername("ADMIN");
         reqAdmin.setEmail("fakeadmin@example.com");
         reqAdmin.setMobileNumber("9111111111");
         reqAdmin.setPassword("Password@123");
+        reqAdmin.setRegistrationToken(tokenAdmin);
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -303,18 +330,21 @@ public class AuthAndSecurityTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(containsString("reserved")));
 
+        String tokenWarden = getRegistrationTokenForEmail("fakewarden@example.com");
         RegisterRequest reqWarden = new RegisterRequest();
         reqWarden.setFullName("Fake Warden");
         reqWarden.setUsername("WaRdEn");
         reqWarden.setEmail("fakewarden@example.com");
         reqWarden.setMobileNumber("9222222222");
         reqWarden.setPassword("Password@123");
+        reqWarden.setRegistrationToken(tokenWarden);
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reqWarden)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(containsString("reserved")));
+
     }
 
     @Test

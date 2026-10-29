@@ -1,5 +1,6 @@
 package com.hostel.management.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -37,8 +38,16 @@ public class Notice {
     @Column(length = 50)
     private String targetAudience;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "publisher_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password"})
+    private User publisher;
+
     @Column(length = 100)
     private String postedBy;
+
+    @Column(name = "content_fingerprint", length = 64, unique = true)
+    private String contentFingerprint;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

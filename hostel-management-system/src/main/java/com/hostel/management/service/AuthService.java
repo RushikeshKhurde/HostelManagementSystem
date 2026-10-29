@@ -28,6 +28,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final StudentIdGeneratorService studentIdGeneratorService;
+    private final EmailVerificationService emailVerificationService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -43,6 +44,10 @@ public class AuthService {
         if (!email.matches("^[a-z0-9._%+-]+@([a-z0-9-]+\\.)+[a-z]{2,}$")) {
             throw new ApiException("Please enter a valid email address (e.g., username@domain.com).", HttpStatus.BAD_REQUEST);
         }
+
+        // Enforce mandatory email ownership verification via registration authorization token
+        emailVerificationService.validateAndConsumeRegistrationToken(email, request.getRegistrationToken());
+
         String mobile = request.getMobileNumber().trim();
 
         if ("warden".equalsIgnoreCase(username) || "admin".equalsIgnoreCase(username)) {

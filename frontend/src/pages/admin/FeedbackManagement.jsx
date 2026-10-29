@@ -7,6 +7,7 @@ import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
 import { EmptyState } from '../../components/feedback/EmptyState';
+import { FeedbackImage } from '../../components/feedback/FeedbackImage';
 import {
   MessageSquare,
   Search,
@@ -17,6 +18,7 @@ import {
   CheckCircle2,
   Shield,
   FileText,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 export const FeedbackManagement = ({ isWarden = false }) => {
@@ -70,7 +72,8 @@ export const FeedbackManagement = ({ isWarden = false }) => {
     const name = (sub.studentName || '').toLowerCase();
     const uname = (sub.studentUsername || '').toLowerCase();
     const email = (sub.studentEmail || '').toLowerCase();
-    return name.includes(term) || uname.includes(term) || email.includes(term);
+    const desc = (sub.description || '').toLowerCase();
+    return name.includes(term) || uname.includes(term) || email.includes(term) || desc.includes(term);
   });
 
   const formatDateTime = (dateStr) => {
@@ -148,89 +151,127 @@ export const FeedbackManagement = ({ isWarden = false }) => {
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
+      {/* Search Bar */}
       <div
         className="card"
         style={{
-          padding: '1rem 1.25rem',
+          padding: '0.875rem 1.25rem',
           display: 'flex',
           gap: '1rem',
           alignItems: 'center',
-          flexWrap: 'wrap',
         }}
       >
-        <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
-          <Search
-            size={18}
-            style={{
-              position: 'absolute',
-              left: '0.75rem',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'var(--text-muted)',
-            }}
-          />
-          <input
-            type="text"
-            placeholder="Search by student name, username, or email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input"
-            style={{ paddingLeft: '2.5rem', width: '100%' }}
-          />
-        </div>
+        <Search size={18} style={{ color: 'var(--text-muted)' }} />
+        <input
+          type="text"
+          className="form-input"
+          placeholder="Search feedback submissions by student name, username, email, or comments..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ border: 'none', background: 'transparent', padding: '0.25rem 0', flex: 1, outline: 'none' }}
+        />
+        {search && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setSearch('')}
+            style={{ fontSize: '0.8125rem' }}
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {/* Submissions List */}
       {loading ? (
-        <div style={{ padding: '3rem 1rem', textAlign: 'center' }}>
-          <LoadingSpinner text="Loading feedback submissions..." />
-        </div>
+        <LoadingSpinner text="Loading feedback directory..." />
       ) : filteredSubmissions.length === 0 ? (
         <EmptyState
           icon={MessageSquare}
-          title={search ? 'No matching submissions found' : 'No feedback submissions yet'}
-          message={
-            search
-              ? 'Try modifying your search filter.'
-              : 'Students have not submitted any feedback questionnaires yet.'
-          }
+          title="No Feedback Submissions Found"
+          message={search ? `No feedback submissions match '${search}'.` : 'No students have submitted the feedback questionnaire yet.'}
         />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1.25rem' }}>
           {filteredSubmissions.map((sub) => (
             <div
               key={sub.id}
-              className="card"
+              className="card card-hover"
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
                 padding: '1.5rem',
                 border: '1px solid var(--border-color)',
-                gap: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                justifyContent: 'space-between',
               }}
             >
-              {/* Card Header */}
               <div>
+                {/* Student Info Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                      {sub.studentName}
-                    </h3>
-                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      @{sub.studentUsername} • {sub.studentEmail}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                    <div
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: 'var(--radius-full)',
+                        backgroundColor: 'var(--primary-light)',
+                        color: 'var(--primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      <UserIcon size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                        {sub.studentName}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        @{sub.studentUsername} · {sub.studentEmail}
+                      </div>
                     </div>
                   </div>
-                  <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}>
-                    <CheckCircle2 size={12} /> {sub.answers?.length || 0} Answers
-                  </span>
+
+                  {sub.hasImage && (
+                    <span
+                      className="badge badge-neutral"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem' }}
+                      title="Photo attachment included"
+                    >
+                      <ImageIcon size={12} color="var(--primary)" /> Photo
+                    </span>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
                   <Calendar size={14} />
                   <span>Submitted: {formatDateTime(sub.submittedAt)}</span>
                 </div>
+
+                {sub.description && (
+                  <div
+                    style={{
+                      marginTop: '0.5rem',
+                      padding: '0.5rem 0.75rem',
+                      backgroundColor: 'var(--bg-subtle)',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '0.75rem',
+                      color: 'var(--text-secondary)',
+                      lineHeight: 1.4,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                    }}
+                  >
+                    <strong>Comment:</strong> {sub.description}
+                  </div>
+                )}
               </div>
 
               {/* Sample Answers Preview (First 3) */}
@@ -345,8 +386,55 @@ export const FeedbackManagement = ({ isWarden = false }) => {
               </div>
             </div>
 
+            {/* Optional Description (if present) */}
+            {selectedSubmission.description && (
+              <div
+                style={{
+                  padding: '1rem 1.25rem',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.375rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  <FileText size={15} color="var(--primary)" />
+                  <span>Student Additional Comments / Description</span>
+                </div>
+                <div style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', fontSize: '0.9375rem', lineHeight: 1.5 }}>
+                  {selectedSubmission.description}
+                </div>
+              </div>
+            )}
+
+            {/* Optional Photo Attachment (if present) */}
+            {selectedSubmission.hasImage && (
+              <div
+                style={{
+                  padding: '1rem 1.25rem',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  <ImageIcon size={15} color="var(--primary)" />
+                  <span>Attached Photo</span>
+                </div>
+                <FeedbackImage feedbackId={selectedSubmission.id} imageName={selectedSubmission.imageName} thumbnail={true} />
+              </div>
+            )}
+
             {/* Questions & Answers breakdown */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-secondary)', paddingLeft: '0.25rem' }}>
+                Questionnaire Answers ({selectedSubmission.answers?.length || 0} Questions):
+              </div>
               {selectedSubmission.answers?.map((ans, idx) => (
                 <div
                   key={idx}
@@ -401,11 +489,11 @@ export const FeedbackManagement = ({ isWarden = false }) => {
                         fontSize: '0.8125rem',
                       }}
                     >
-                      <CheckCircle2 size={12} /> {ans.selectedOption}
+                      <CheckCircle2 size={13} /> {ans.selectedOption}
                     </span>
                   </div>
 
-                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', paddingLeft: '0.25rem' }}>
+                  <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-primary)', paddingLeft: '0.25rem' }}>
                     {ans.question}
                   </div>
                 </div>
@@ -416,19 +504,17 @@ export const FeedbackManagement = ({ isWarden = false }) => {
       )}
 
       {/* Admin Delete Confirmation Dialog */}
-      {!isWarden && (
-        <ConfirmDialog
-          isOpen={Boolean(submissionToDelete)}
-          onClose={() => setSubmissionToDelete(null)}
-          onConfirm={handleDelete}
-          title="Delete Student Feedback?"
-          message={`Are you sure you want to permanently delete the feedback submission from "${submissionToDelete?.studentName}"? This action cannot be undone.`}
-          confirmText="Yes, Delete Feedback"
-          cancelText="Cancel"
-          danger={true}
-          loading={deleting}
-        />
-      )}
+      <ConfirmDialog
+        isOpen={Boolean(submissionToDelete)}
+        onClose={() => setSubmissionToDelete(null)}
+        onConfirm={handleDelete}
+        title="Delete Student Feedback?"
+        message={`Are you sure you want to permanently delete the feedback questionnaire submitted by ${submissionToDelete?.studentName}? The student will be permitted to resubmit a new questionnaire.`}
+        confirmText="Delete Feedback"
+        cancelText="Cancel"
+        danger={true}
+        loading={deleting}
+      />
     </div>
   );
 };

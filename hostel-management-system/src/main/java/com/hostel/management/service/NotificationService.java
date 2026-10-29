@@ -62,6 +62,21 @@ public class NotificationService {
     }
 
     @Transactional
+    public Notification createNotification(User recipient, String title, String message, NotificationType type) {
+        if (recipient == null) {
+            return null;
+        }
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .title(title)
+                .message(message)
+                .type(type)
+                .isRead(false)
+                .build();
+        return notificationRepository.save(notification);
+    }
+
+    @Transactional
     public Map<String, Object> sendFeeReminder(Long studentId, User sender) {
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new ApiException("Student not found", HttpStatus.NOT_FOUND));

@@ -20,4 +20,8 @@ public class FeedbackSubmissionDto {
     private String studentEmail;
     private LocalDateTime submittedAt;
     private List<FeedbackAnswerDto> answers;
+    private String description;
+    private boolean hasImage;
+    private String imageUrl;
+    private String imageName;
 }
