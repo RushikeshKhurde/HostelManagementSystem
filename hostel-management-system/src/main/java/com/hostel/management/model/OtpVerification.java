@@ -41,9 +41,11 @@ public class OtpVerification {
     @Column(name = "expiry_time", nullable = false)
     private LocalDateTime expiryTime;
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean used = false;
 
+    @Builder.Default
     @Column(nullable = false)
     private int attempts = 0;
 
