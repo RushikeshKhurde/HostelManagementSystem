@@ -241,4 +241,111 @@ public class PaymentWorkflowTest {
         List<PaymentResponse> allPayments = paymentService.getAllPayments();
         assertFalse(allPayments.isEmpty());
     }
+
+    @Test
+    @DisplayName("Create Razorpay Order success with DB-driven amount")
+    void testCreateRazorpayOrderSuccess() {
+        com.hostel.management.dto.CreateRazorpayOrderRequest req = new com.hostel.management.dto.CreateRazorpayOrderRequest();
+        req.setBookingId(approvedBooking.getId());
+
+        com.hostel.management.dto.RazorpayOrderResponse order = paymentService.createRazorpayOrder(student1, req);
+        assertNotNull(order);
+        assertNotNull(order.getOrderId());
+        assertEquals(approvedBooking.getId(), order.getBookingId());
+        assertEquals(0, order.getAmount().compareTo(BigDecimal.valueOf(6500.00)));
+        assertEquals(650000L, order.getAmountInPaise());
+        assertEquals("INR", order.getCurrency());
+        assertEquals(student1.getFullName(), order.getStudentName());
+    }
+
+    @Test
+    @DisplayName("Create Razorpay Order for another student's booking returns 403 Forbidden")
+    void testCreateRazorpayOrderForbiddenForOtherStudent() {
+        com.hostel.management.dto.CreateRazorpayOrderRequest req = new com.hostel.management.dto.CreateRazorpayOrderRequest();
+        req.setBookingId(approvedBooking.getId());
+
+        ApiException ex = assertThrows(ApiException.class, () -> paymentService.createRazorpayOrder(student2, req));
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatus());
+        assertTrue(ex.getMessage().contains("not allowed"));
+    }
+
+    @Test
+    @DisplayName("Create Razorpay Order when fee already successfully paid returns 409 Conflict")
+    void testCreateRazorpayOrderAlreadyPaidConflict() {
+        PaymentRequest payReq = new PaymentRequest();
+        payReq.setBookingId(approvedBooking.getId());
+        payReq.setMethod("UPI");
+        paymentService.makePayment(student1, payReq);
+
+        com.hostel.management.dto.CreateRazorpayOrderRequest req = new com.hostel.management.dto.CreateRazorpayOrderRequest();
+        req.setBookingId(approvedBooking.getId());
+
+        ApiException ex = assertThrows(ApiException.class, () -> paymentService.createRazorpayOrder(student1, req));
+        assertEquals(HttpStatus.CONFLICT, ex.getStatus());
+        assertTrue(ex.getMessage().contains("already been paid"));
+    }
+
+    @Test
+    @DisplayName("Verify Razorpay Payment with valid signature updates status to SUCCESS")
+    void testVerifyRazorpayPaymentSuccess() {
+        com.hostel.management.dto.CreateRazorpayOrderRequest orderReq = new com.hostel.management.dto.CreateRazorpayOrderRequest();
+        orderReq.setBookingId(approvedBooking.getId());
+        com.hostel.management.dto.RazorpayOrderResponse order = paymentService.createRazorpayOrder(student1, orderReq);
+
+        String paymentId = "pay_" + UUID.randomUUID().toString().substring(0, 10);
+        com.hostel.management.dto.VerifyRazorpayPaymentRequest verifyReq = com.hostel.management.dto.VerifyRazorpayPaymentRequest.builder()
+                .razorpayOrderId(order.getOrderId())
+                .razorpayPaymentId(paymentId)
+                .razorpaySignature("test_signature")
+                .bookingId(approvedBooking.getId())
+                .paymentMethod("UPI")
+                .build();
+
+        PaymentResponse verified = paymentService.verifyRazorpayPayment(student1, verifyReq);
+        assertNotNull(verified);
+        assertEquals("SUCCESS", verified.getStatus());
+        assertEquals(paymentId, verified.getTransactionRef());
+        assertNotNull(verified.getPaidAt());
+        assertEquals(0, verified.getAmount().compareTo(BigDecimal.valueOf(6500.00)));
+    }
+
+    @Test
+    @DisplayName("Get pending fees for student correctly indicates unpaid vs paid state")
+    void testGetPendingFeesForStudent() {
+        List<com.hostel.management.dto.PendingFeeResponse> fees = paymentService.getPendingFeesForStudent(student1.getId());
+        assertFalse(fees.isEmpty());
+        com.hostel.management.dto.PendingFeeResponse fee = fees.get(0);
+        assertFalse(fee.isPaid());
+        assertEquals(0, fee.getMonthlyRent().compareTo(BigDecimal.valueOf(6500.00)));
+        assertEquals(0, fee.getRemainingAmount().compareTo(BigDecimal.valueOf(6500.00)));
+
+        // Now pay it
+        PaymentRequest payReq = new PaymentRequest();
+        payReq.setBookingId(approvedBooking.getId());
+        payReq.setMethod("UPI");
+        paymentService.makePayment(student1, payReq);
+
+        List<com.hostel.management.dto.PendingFeeResponse> updatedFees = paymentService.getPendingFeesForStudent(student1.getId());
+        assertTrue(updatedFees.get(0).isPaid());
+        assertEquals(0, updatedFees.get(0).getRemainingAmount().compareTo(BigDecimal.ZERO));
+    }
+
+    @Test
+    @DisplayName("Razorpay order creation throws clear error when gateway is not configured")
+    void testRazorpayNotConfiguredThrowsClearError() {
+        com.hostel.management.service.RazorpayService unconfiguredService = new com.hostel.management.service.RazorpayService();
+        // unconfiguredService has default empty keys and allowTestSimulation = false
+        ApiException ex = assertThrows(ApiException.class, () ->
+            unconfiguredService.createOrder(BigDecimal.valueOf(1000), "rcpt_1", java.util.Map.of())
+        );
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+        assertTrue(ex.getMessage().contains("Razorpay payment gateway is not configured"));
+
+        ApiException verifyEx = assertThrows(ApiException.class, () ->
+            unconfiguredService.verifySignature("order_123", "pay_123", "sig_123")
+        );
+        assertEquals(HttpStatus.BAD_REQUEST, verifyEx.getStatus());
+        assertTrue(verifyEx.getMessage().contains("Razorpay payment gateway is not configured"));
+    }
 }
+
