@@ -46,6 +46,7 @@ export default function App() {
                 {/* Public Routes */}
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<Login initialView="ENTER_IDENTIFIER" />} />
                 <Route path="/register" element={<Register />} />
 
                 {/* Admin Routes */}

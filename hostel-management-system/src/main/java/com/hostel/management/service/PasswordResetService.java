@@ -74,12 +74,22 @@ public class PasswordResetService {
             throw new ApiException("Unsupported verification method. Only Email verification is supported.", HttpStatus.BAD_REQUEST);
         }
 
-        String destination = identifier.toLowerCase();
-        if (!destination.matches("^[a-zA-Z0-9._%+-]+@([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$")) {
-            throw new ApiException("Please enter a valid email address.", HttpStatus.BAD_REQUEST);
+        Optional<User> userOpt;
+        String destination;
+        if (identifier.contains("@")) {
+            destination = identifier.toLowerCase();
+            if (!destination.matches("^[a-zA-Z0-9._%+-]+@([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$")) {
+                throw new ApiException("Please enter a valid email address.", HttpStatus.BAD_REQUEST);
+            }
+            userOpt = userRepository.findByEmailIgnoreCase(destination);
+        } else {
+            userOpt = userRepository.findByUsernameOrEmail(identifier);
+            if (userOpt.isPresent() && userOpt.get().getEmail() != null && !userOpt.get().getEmail().isBlank()) {
+                destination = userOpt.get().getEmail().toLowerCase();
+            } else {
+                destination = identifier.toLowerCase();
+            }
         }
-
-        Optional<User> userOpt = userRepository.findByEmailIgnoreCase(destination);
         String masked = maskDestination(destination, channel);
 
         // Account enumeration protection: If user not found, log warning and return generic response

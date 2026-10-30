@@ -70,22 +70,22 @@ public class EmailVerificationService {
     @Value("${app.otp.hash-pepper:${app.jwt.secret:DedicatedRegistrationPepperKeyMustBeAtLeast32Bytes!}}")
     private String hashPepper;
 
-    @Value("${app.otp.email.mode:simulation}")
+    @Value("${app.otp.email.mode:${OTP_EMAIL_MODE:real}}")
     private String emailMode;
 
-    @Value("${spring.mail.host:smtp.gmail.com}")
+    @Value("${spring.mail.host:${MAIL_HOST:smtp.gmail.com}}")
     private String mailHost;
 
-    @Value("${spring.mail.port:587}")
+    @Value("${spring.mail.port:${MAIL_PORT:587}}")
     private int mailPort;
 
-    @Value("${spring.mail.username:}")
+    @Value("${spring.mail.username:${MAIL_USERNAME:}}")
     private String mailUsername;
 
-    @Value("${spring.mail.password:}")
+    @Value("${spring.mail.password:${MAIL_PASSWORD:}}")
     private String mailPassword;
 
-    @Value("${app.mail.from:${spring.mail.username:noreply@hostelmanagement.com}}")
+    @Value("${app.mail.from:${MAIL_FROM:${spring.mail.username:${MAIL_USERNAME:noreply@hostelmanagement.com}}}}")
     private String fromEmail;
 
     // Rate limiting map for client IP requests (window-based)
