@@ -9,8 +9,10 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -90,6 +92,27 @@ public class GlobalExceptionHandler {
         body.put("status", HttpStatus.METHOD_NOT_ALLOWED.value());
         body.put("message", ex.getMessage());
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(body);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Object> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("message", "File size exceeds the 5MB limit. Please upload a smaller image.");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Object> handleMissingParam(MissingServletRequestParameterException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        String msg = "feedback".equals(ex.getParameterName())
+                ? "Feedback / complaint message is required"
+                : "Required parameter '" + ex.getParameterName() + "' is missing.";
+        body.put("message", msg);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
     @ExceptionHandler(Exception.class)

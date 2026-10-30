@@ -44,4 +44,8 @@ public class RegisterRequest {
     private LocalDate dateOfBirth;
 
     private String address;
+
+    @NotBlank(message = "Email verification token is required. Please verify your email first.")
+    private String registrationToken;
 }
+

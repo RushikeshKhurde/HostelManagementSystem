@@ -6,7 +6,8 @@ import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
 import { EmptyState } from '../../components/feedback/EmptyState';
-import { MessageSquareWarning, Search, Edit3 } from 'lucide-react';
+import { ComplaintImage } from '../../components/complaint/ComplaintImage';
+import { MessageSquareWarning, Search, Edit3, Image as ImageIcon, User, MapPin } from 'lucide-react';
 
 export const ComplaintManagement = () => {
   const { success: toastSuccess, error: toastError } = useToast();
@@ -51,7 +52,7 @@ export const ComplaintManagement = () => {
         status: newStatus,
         adminComment: adminComment.trim(),
       });
-      toastSuccess('Complaint updated successfully.');
+      toastSuccess('Complaint updated successfully. Student has been notified.');
       setSelectedComplaint(null);
       fetchComplaints();
     } catch (err) {
@@ -63,12 +64,21 @@ export const ComplaintManagement = () => {
 
   const filtered = complaints.filter((c) => {
     const student = c.student?.fullName || '';
+    const email = c.student?.email || '';
     const title = c.title || '';
+    const feedback = c.feedback || '';
     const desc = c.description || '';
+    const visibility = c.visibility || '';
+    const query = search.toLowerCase();
+
     const matchesSearch =
-      student.toLowerCase().includes(search.toLowerCase()) ||
-      title.toLowerCase().includes(search.toLowerCase()) ||
-      desc.toLowerCase().includes(search.toLowerCase());
+      student.toLowerCase().includes(query) ||
+      email.toLowerCase().includes(query) ||
+      title.toLowerCase().includes(query) ||
+      feedback.toLowerCase().includes(query) ||
+      desc.toLowerCase().includes(query) ||
+      visibility.toLowerCase().includes(query);
+
     const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -97,7 +107,7 @@ export const ComplaintManagement = () => {
           <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input
             type="text"
-            placeholder="Search complaints by student, title, or details..."
+            placeholder="Search complaints by student, title, or message..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="form-input"
@@ -133,7 +143,9 @@ export const ComplaintManagement = () => {
             <thead>
               <tr>
                 <th>Student</th>
-                <th>Category & Title</th>
+                <th>Category & Grievance</th>
+                <th>Audience</th>
+                <th>Attachment</th>
                 <th>Room</th>
                 <th>Priority</th>
                 <th>Status</th>
@@ -145,12 +157,79 @@ export const ComplaintManagement = () => {
               {filtered.map((c) => (
                 <tr key={c.id}>
                   <td>
-                    <div style={{ fontWeight: 700 }}>{c.student?.fullName}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.student?.mobileNumber}</div>
+                    <div style={{ fontWeight: 700 }}>{c.student?.fullName || 'Student'}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.student?.email || c.student?.mobileNumber}</div>
                   </td>
                   <td>
-                    <div style={{ fontWeight: 600 }}>{c.title}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>#{c.id}</span>
+                      <span style={{ fontWeight: 600 }}>{c.title}</span>
+                    </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.category}</div>
+                  </td>
+                  <td>
+                    {(() => {
+                      const v = c.visibility;
+                      if (v === 'WARDEN_ONLY') {
+                        return (
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: '9999px',
+                              backgroundColor: '#fef3c7',
+                              color: '#92400e',
+                              border: '1px solid #fde68a',
+                            }}
+                          >
+                            Warden Only
+                          </span>
+                        );
+                      }
+                      if (v === 'ADMIN_ONLY') {
+                        return (
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: '9999px',
+                              backgroundColor: '#e0f2fe',
+                              color: '#075985',
+                              border: '1px solid #bae6fd',
+                            }}
+                          >
+                            Admin Only
+                          </span>
+                        );
+                      }
+                      return (
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: '9999px',
+                            backgroundColor: 'var(--bg-subtle)',
+                            color: 'var(--text-secondary)',
+                            border: '1px solid var(--border-color)',
+                          }}
+                        >
+                          Admin &amp; Warden
+                        </span>
+                      );
+                    })()}
+                  </td>
+                  <td>
+                    {c.hasImage ? (
+                      <ComplaintImage complaintId={c.id} imageName={c.imageName} thumbnail={true} />
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>None</span>
+                    )}
                   </td>
                   <td>{c.roomNumber || 'General'}</td>
                   <td><Badge status={c.priority} /></td>
@@ -158,7 +237,7 @@ export const ComplaintManagement = () => {
                   <td>{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'N/A'}</td>
                   <td style={{ textAlign: 'right' }}>
                     <Button variant="secondary" size="sm" icon={Edit3} onClick={() => handleOpenUpdate(c)}>
-                      Update
+                      Review / Update
                     </Button>
                   </td>
                 </tr>
@@ -168,21 +247,78 @@ export const ComplaintManagement = () => {
         </div>
       )}
 
+      {/* Review & Status Update Modal */}
       <Modal
         isOpen={!!selectedComplaint}
         onClose={() => setSelectedComplaint(null)}
-        title="Update Grievance Status"
-        maxWidth="500px"
+        title="Review & Update Grievance Ticket"
+        maxWidth="560px"
       >
         {selectedComplaint && (
           <form onSubmit={handleSaveStatus} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>
-              <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{selectedComplaint.title}</div>
-              <div style={{ color: 'var(--text-secondary)' }}>{selectedComplaint.description}</div>
+            {/* Student & Ticket Details Card */}
+            <div style={{ padding: '0.85rem', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}>
+                  <User size={15} color="var(--primary)" />
+                  <span>{selectedComplaint.student?.fullName || 'Student'}</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                    ({selectedComplaint.student?.email || selectedComplaint.student?.mobileNumber})
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                  <Badge status={selectedComplaint.priority} />
+                  <Badge status={selectedComplaint.status} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                <span><strong>Category:</strong> {selectedComplaint.category}</span>
+                <span>· <strong>Audience:</strong> {
+                  selectedComplaint.visibility === 'WARDEN_ONLY' ? 'Warden Only' :
+                  selectedComplaint.visibility === 'ADMIN_ONLY' ? 'Admin Only' : 'Admin & Warden'
+                }</span>
+                {selectedComplaint.roomNumber && (
+                  <span>· <strong>Location:</strong> {selectedComplaint.roomNumber}</span>
+                )}
+                <span>· <strong>Date:</strong> {selectedComplaint.createdAt ? new Date(selectedComplaint.createdAt).toLocaleString() : 'Recent'}</span>
+              </div>
+
+              {/* Main Grievance / Feedback */}
+              <div style={{ marginTop: '0.35rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                  GRIEVANCE / FEEDBACK:
+                </div>
+                <div style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
+                  {selectedComplaint.feedback || selectedComplaint.description}
+                </div>
+              </div>
+
+              {/* Additional Description if present */}
+              {selectedComplaint.description && selectedComplaint.feedback && selectedComplaint.description !== selectedComplaint.feedback && (
+                <div style={{ marginTop: '0.35rem' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                    ADDITIONAL DETAILS:
+                  </div>
+                  <div style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', fontSize: '0.8125rem' }}>
+                    {selectedComplaint.description}
+                  </div>
+                </div>
+              )}
+
+              {/* Attached Image if present */}
+              {selectedComplaint.hasImage && (
+                <div style={{ marginTop: '0.4rem' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                    ATTACHED PHOTO:
+                  </div>
+                  <ComplaintImage complaintId={selectedComplaint.id} imageName={selectedComplaint.imageName} thumbnail={true} />
+                </div>
+              )}
             </div>
 
             <div>
-              <label className="form-label">Status</label>
+              <label className="form-label">Update Status</label>
               <select
                 className="form-select"
                 value={newStatus}
@@ -196,11 +332,11 @@ export const ComplaintManagement = () => {
             </div>
 
             <div>
-              <label className="form-label">Admin Resolution Comment</label>
+              <label className="form-label">Hostel Staff Resolution Comment</label>
               <textarea
                 className="form-textarea"
                 rows={3}
-                placeholder="e.g. Electrician visited and repaired switchboard."
+                placeholder="e.g. Electrician visited and repaired switchboard. Work verified."
                 value={adminComment}
                 onChange={(e) => setAdminComment(e.target.value)}
               />

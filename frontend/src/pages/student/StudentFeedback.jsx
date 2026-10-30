@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { Button } from '../../components/common/Button';
@@ -6,15 +6,19 @@ import { Badge } from '../../components/common/Badge';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { LoadingSpinner } from '../../components/feedback/LoadingSpinner';
 import { EmptyState } from '../../components/feedback/EmptyState';
+import { FeedbackImage } from '../../components/feedback/FeedbackImage';
 import {
   MessageSquare,
   CheckCircle2,
   Trash2,
   Calendar,
   AlertCircle,
-  HelpCircle,
   ShieldCheck,
   Send,
+  UploadCloud,
+  Image as ImageIcon,
+  Info,
+  FileText,
 } from 'lucide-react';
 
 export const StudentFeedback = () => {
@@ -24,10 +28,19 @@ export const StudentFeedback = () => {
   const [questions, setQuestions] = useState([]);
   const [myFeedback, setMyFeedback] = useState(null);
   const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [description, setDescription] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
+  const [fileError, setFileError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [validationError, setValidationError] = useState('');
+
+  const fileInputRef = useRef(null);
+
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
   const fetchData = async () => {
     setLoading(true);
@@ -51,6 +64,15 @@ export const StudentFeedback = () => {
     fetchData();
   }, []);
 
+  // Cleanup object URL on unmount or when image changes
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
+
   const handleSelectOption = (questionId, optionId) => {
     setSelectedAnswers((prev) => ({
       ...prev,
@@ -59,6 +81,50 @@ export const StudentFeedback = () => {
     if (validationError) {
       setValidationError('');
     }
+  };
+
+  const handleImageChange = (e) => {
+    setFileError('');
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase())) {
+      setFileError('Unsupported file format. Please upload JPG, JPEG, PNG, or WebP.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      setFileError('Image file size exceeds the 5MB limit. Please choose a smaller photo.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+
+    const preview = URL.createObjectURL(file);
+    setImageFile(file);
+    setImagePreviewUrl(preview);
+  };
+
+  const handleRemoveImage = () => {
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setImageFile(null);
+    setImagePreviewUrl(null);
+    setFileError('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   };
 
   const handleSubmit = async (e) => {
@@ -80,19 +146,45 @@ export const StudentFeedback = () => {
       return;
     }
 
+    if (description && description.length > 5000) {
+      setValidationError('Additional description cannot exceed 5000 characters.');
+      toastError('Additional description cannot exceed 5000 characters.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const payload = {
-        answers: questions.map((q) => ({
-          questionId: q.id,
-          optionId: selectedAnswers[q.id],
-        })),
-      };
+      const answersPayload = questions.map((q) => ({
+        questionId: q.id,
+        optionId: selectedAnswers[q.id],
+      }));
 
-      const res = await api.post('/feedback', payload);
+      const formData = new FormData();
+      formData.append('answers', JSON.stringify(answersPayload));
+
+      if (description && description.trim()) {
+        formData.append('description', description.trim());
+      }
+
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
+      const res = await api.post('/feedback', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
       toastSuccess('Thank you! Your feedback has been submitted successfully.');
       setMyFeedback(res.data);
       setSelectedAnswers({});
+      setDescription('');
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+      setImageFile(null);
+      setImagePreviewUrl(null);
+      setFileError('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
       toastError(err.message || 'Failed to submit feedback');
     } finally {
@@ -108,6 +200,12 @@ export const StudentFeedback = () => {
       toastSuccess('Feedback deleted successfully. You can now submit a new questionnaire.');
       setMyFeedback(null);
       setSelectedAnswers({});
+      setDescription('');
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+      setImageFile(null);
+      setImagePreviewUrl(null);
       setDeleteConfirmOpen(false);
     } catch (err) {
       toastError(err.message || 'Failed to delete feedback');
@@ -196,6 +294,48 @@ export const StudentFeedback = () => {
             <strong>Note:</strong> Submitted feedback is permanent and cannot be modified directly. If your experience or rating has changed, you may delete your submission and complete a fresh questionnaire.
           </div>
         </div>
+
+        {/* Optional Additional Description Card (if submitted) */}
+        {myFeedback.description && (
+          <div
+            className="card"
+            style={{
+              padding: '1.25rem 1.5rem',
+              border: '1px solid var(--border-color)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              <FileText size={15} color="var(--primary)" />
+              <span>Additional Comments / Description</span>
+            </div>
+            <div style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', fontSize: '0.9375rem', lineHeight: 1.5 }}>
+              {myFeedback.description}
+            </div>
+          </div>
+        )}
+
+        {/* Optional Attached Photo (if submitted) */}
+        {myFeedback.hasImage && (
+          <div
+            className="card"
+            style={{
+              padding: '1.25rem 1.5rem',
+              border: '1px solid var(--border-color)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              <ImageIcon size={15} color="var(--primary)" />
+              <span>Attached Photo</span>
+            </div>
+            <FeedbackImage feedbackId={myFeedback.id} imageName={myFeedback.imageName} thumbnail={true} />
+          </div>
+        )}
 
         {/* Answers List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -331,7 +471,7 @@ export const StudentFeedback = () => {
         </h2>
         <p style={{ color: 'var(--text-secondary)', marginTop: '0.375rem', fontSize: '0.9375rem' }}>
           Your feedback directly influences hostel maintenance, mess cleanliness, internet reliability, and security services.
-          Please answer all questions below and submit your feedback once completed.
+          Please answer all 15 questions below, and optionally attach an explanation or photograph.
         </p>
 
         {/* Progress bar */}
@@ -398,7 +538,7 @@ export const StudentFeedback = () => {
               className="card"
               style={{
                 padding: '1.5rem',
-                border: isAnswered ? '1px solid var(--border-color)' : '1px solid var(--border-color)',
+                border: '1px solid var(--border-color)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '1rem',
@@ -516,6 +656,171 @@ export const StudentFeedback = () => {
           );
         })}
 
+        {/* ----------------------------------------------------------------- */}
+        {/* OPTIONAL FIELDS: DESCRIPTION & PHOTO ATTACHMENT                  */}
+        {/* ----------------------------------------------------------------- */}
+        <div
+          className="card"
+          style={{
+            padding: '1.5rem 2rem',
+            border: '1px solid var(--border-color)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem',
+            backgroundColor: 'var(--bg-card)',
+          }}
+        >
+          {/* Informational Guidance Note */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.5rem',
+              padding: '0.75rem 1rem',
+              backgroundColor: 'var(--bg-subtle)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              fontSize: '0.8125rem',
+              color: 'var(--text-secondary)',
+              alignItems: 'center',
+            }}
+          >
+            <Info size={16} color="var(--primary)" style={{ flexShrink: 0 }} />
+            <span>
+              <strong>Note:</strong> All 15 questions above are required. The additional description and photograph attachment below are <strong>completely optional</strong>.
+            </span>
+          </div>
+
+          {/* Additional Description (Optional) */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
+              <label className="form-label" style={{ marginBottom: 0, fontWeight: 700 }}>
+                Additional Description <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(Optional)</span>
+              </label>
+              <span style={{ fontSize: '0.75rem', color: description.length > 4800 ? '#ef4444' : 'var(--text-muted)' }}>
+                {description.length} / 5000
+              </span>
+            </div>
+            <textarea
+              className="form-textarea"
+              rows={3}
+              maxLength={5000}
+              placeholder="Provide any further context, suggestions, or specific observations to explain your feedback..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+
+          {/* Attach a Photo (Optional) */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
+              <label className="form-label" style={{ marginBottom: 0, fontWeight: 700 }}>
+                Attach a Photo <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(Optional, max 1)</span>
+              </label>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                JPG, JPEG, PNG, WebP (Max 5MB)
+              </span>
+            </div>
+
+            {/* Hidden native input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+              onChange={handleImageChange}
+              style={{ display: 'none' }}
+            />
+
+            {!imageFile ? (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: '2px dashed var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1.25rem 1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                  backgroundColor: 'var(--bg-subtle)',
+                  transition: 'border-color 0.2s',
+                }}
+                className="upload-dropzone"
+              >
+                <UploadCloud size={28} color="var(--primary)" />
+                <div style={{ textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Click to browse or upload an illustrative photo
+                  </span>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    E.g. washroom hygiene, mess food quality, damaged furniture, or water facility
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.65rem 0.85rem',
+                  backgroundColor: 'var(--bg-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                  {imagePreviewUrl ? (
+                    <img
+                      src={imagePreviewUrl}
+                      alt="Selected attachment preview"
+                      style={{ width: '44px', height: '44px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-color)' }}
+                    />
+                  ) : (
+                    <ImageIcon size={24} color="var(--primary)" />
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+                      {imageFile.name}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {formatFileSize(imageFile.size)}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{ fontSize: '0.75rem' }}
+                  >
+                    Replace
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={handleRemoveImage}
+                    style={{ color: '#ef4444', padding: '4px' }}
+                    title="Remove photo"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {fileError && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#ef4444', fontSize: '0.75rem', marginTop: '0.35rem' }}>
+                <AlertCircle size={13} />
+                <span>{fileError}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Submit Actions */}
         <div
           className="card"
@@ -537,7 +842,7 @@ export const StudentFeedback = () => {
             </div>
             <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '2px' }}>
               {answeredCount === questions.length
-                ? 'All questions answered. Once submitted, your feedback is recorded and becomes immutable.'
+                ? 'All 15 questions answered. Once submitted, your feedback is recorded and becomes immutable.'
                 : `${questions.length - answeredCount} questions remaining to be answered.`}
             </div>
           </div>

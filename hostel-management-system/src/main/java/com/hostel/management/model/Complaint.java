@@ -32,11 +32,23 @@ public class Complaint {
     @Column(nullable = false, length = 50)
     private String category;
 
-    @Column(nullable = false, length = 1000)
+    @Column(name = "feedback", length = 2000)
+    private String feedback;
+
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     @Column(length = 20)
     private String roomNumber;
+
+    @Column(name = "image_path", length = 255)
+    private String imagePath;
+
+    @Column(name = "image_name", length = 255)
+    private String imageName;
+
+    @Column(name = "image_content_type", length = 100)
+    private String imageContentType;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -47,6 +59,11 @@ public class Complaint {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private ComplaintStatus status = ComplaintStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "visibility", nullable = false, length = 30)
+    @Builder.Default
+    private ComplaintVisibility visibility = ComplaintVisibility.WARDEN_AND_ADMIN;
 
     @Column(length = 500)
     private String adminComment;
@@ -61,11 +78,36 @@ public class Complaint {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+        if (this.visibility == null) {
+            this.visibility = ComplaintVisibility.WARDEN_AND_ADMIN;
+        }
+        if ((this.feedback == null || this.feedback.isBlank()) && (this.description != null && !this.description.isBlank())) {
+            this.feedback = this.description;
+        }
+        if (this.title == null || this.title.isBlank()) {
+            if (this.feedback != null && this.feedback.length() > 60) {
+                this.title = this.feedback.substring(0, 57) + "...";
+            } else if (this.feedback != null && !this.feedback.isBlank()) {
+                this.title = this.feedback;
+            } else {
+                this.title = "Complaint";
+            }
+        }
+        if (this.category == null || this.category.isBlank()) {
+            this.category = "OTHER";
+        }
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    @PostLoad
+    protected void onLoad() {
+        if (this.visibility == null) {
+            this.visibility = ComplaintVisibility.WARDEN_AND_ADMIN;
+        }
     }
 
     public enum Priority {

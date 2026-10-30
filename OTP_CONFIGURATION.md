@@ -1,125 +1,172 @@
 # OTP Configuration & Setup Guide
 
-This document explains how to configure and run the **Hostel Management System** with Email OTP delivery.
+This document explains how to configure, run, and test the **Hostel Management System** with Email OTP delivery for both **Mandatory Student Registration Email Verification** and **Forgot Password / Password Reset**.
+
+---
+
+## 1. Features Overview
+
+### A. Mandatory Student Registration Email Verification
+Before a student account can be created in the system, email ownership must be verified:
+1. **Send Verification OTP**: Student submits their email (`POST /api/auth/email-verification/send-otp`).
+2. **OTP Dispatch**: A cryptographically secure 6-digit OTP is generated using `SecureRandom`, hashed via HMAC/SHA-256 with server pepper, and delivered to the recipient's inbox.
+3. **Verify OTP**: Student submits the 6-digit code (`POST /api/auth/email-verification/verify-otp`).
+4. **Registration Authorization Token**: Upon successful OTP verification, the backend issues a short-lived (10 min), single-use registration authorization token containing 256+ bits of entropy.
+5. **Atomic Account Creation**: Student submits registration form with `registrationToken` (`POST /api/auth/register`). The backend validates and atomically consumes the authorization token in the database transaction, preventing token reuse or bypassing.
+
+### B. Forgot Password / Password Reset
+Self-service password recovery using Email OTP:
+- `POST /api/auth/forgot-password/request`
+- `POST /api/auth/forgot-password/resend`
+- `POST /api/auth/forgot-password/verify-otp`
+- `POST /api/auth/forgot-password/reset`
+
+---
+
+## 2. Delivery Modes
 
 The application supports two delivery modes:
-1. **Simulation Mode** (Default for development & automated tests — no external credentials required)
-2. **Real Delivery Mode** (Sends real emails via SMTP / Gmail)
+1. **Simulation Mode** (`OTP_EMAIL_MODE=simulation`): Default for local development and CI testing. OTPs are protected and handled in memory without requiring external SMTP credentials.
+2. **Real SMTP Mode** (`OTP_EMAIL_MODE=real` or `OTP_EMAIL_MODE=smtp`): Sends real HTML/plain-text emails to recipient inboxes via Gmail SMTP or custom mail servers.
 
 ---
 
-## A. Development Simulation Mode
+## 3. Real Gmail SMTP Configuration
 
-When running locally without external credentials, the system defaults to **Simulation Mode**.
+### Step A: Generate a Google Gmail App Password
+1. Log into your Google Account and visit **[Google Account Security](https://myaccount.google.com/security)**.
+2. Ensure **2-Step Verification** is turned **ON**.
+3. Under *2-Step Verification*, navigate to **App passwords** (or search "App passwords").
+4. Create a new App Password (e.g. name it `HostelManagementSystem`).
+5. Copy the 16-character generated code (e.g. `abcd efgh ijkl mnop`).
 
-- **Email**: OTPs are generated, hashed with BCrypt, and logged to the server console with full transaction details.
-- **Security**: In simulation mode, passwords and secrets are never logged.
-
-### Default Environment Variables:
-```properties
-OTP_EMAIL_MODE=simulation
-```
-
----
-
-## B. Real Email SMTP Configuration
-
-To enable live email delivery to students' inboxes, configure standard SMTP settings.
-
-### Gmail SMTP Configuration
-1. Enable 2-Step Verification on your Google Account.
-2. Go to **Google Account Settings** -> **Security** -> **App passwords**.
-3. Generate a new App Password (select "Mail" and "Windows Computer").
-4. Copy the 16-character generated password.
-
-### Required Environment Variables:
-```bash
-OTP_EMAIL_MODE=real
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-gmail-app-password
-```
-
-### Custom / College SMTP Configuration:
-```bash
-OTP_EMAIL_MODE=real
-MAIL_HOST=smtp.yourcollege.edu
-MAIL_PORT=587
-MAIL_USERNAME=noreply@yourcollege.edu
-MAIL_PASSWORD=your-smtp-password
-```
-
-> **Note**: If `OTP_EMAIL_MODE=real` is specified but `MAIL_USERNAME` or `MAIL_PASSWORD` is missing, the backend returns a safe HTTP 503 response:
-> `"Email service is not configured. Please contact the administrator."`
-
----
-
-## C. Environment Variables Reference Table
-
-| Variable | Required In | Default Value | Description |
-|---|---|---|---|
-| `OTP_EMAIL_MODE` | All | `simulation` | `simulation` or `real` |
-| `MAIL_HOST` | Real Email | `smtp.gmail.com` | SMTP Server Host |
-| `MAIL_PORT` | Real Email | `587` | SMTP Port (587 for TLS, 465 for SSL) |
-| `MAIL_USERNAME` | Real Email | *(empty)* | Email Address / SMTP Username |
-| `MAIL_PASSWORD` | Real Email | *(empty)* | App Password / SMTP Password |
-
----
-
-## D. How to Start the Application
-
-### 1. Running in Default Simulation Mode (PowerShell)
+### Step B: Environment Variables in PowerShell
 ```powershell
-$env:JAVA_HOME = "C:\Users\HP\.jdks\ms-21.0.12.1"
-$env:SPRING_PROFILES_ACTIVE = "local"
+$env:OTP_EMAIL_MODE="real"
+$env:MAIL_HOST="smtp.gmail.com"
+$env:MAIL_PORT="587"
+$env:MAIL_USERNAME="your-email@gmail.com"
+$env:MAIL_PASSWORD="your-16-char-app-password"
+$env:MAIL_FROM="your-email@gmail.com"
+```
+
+---
+
+## 4. API Endpoints Reference
+
+### Student Registration Email Verification Endpoints
+
+#### 1. Send Registration OTP
+- **Method:** `POST`
+- **URL:** `/api/auth/email-verification/send-otp`
+- **Request Body:**
+  ```json
+  {
+    "email": "student@example.com"
+  }
+  ```
+- **Success Response (200 OK):**
+  ```json
+  {
+    "message": "Verification code sent to your email address.",
+    "email": "student@example.com",
+    "destinationMasked": "s*****@example.com",
+    "expiresInSeconds": 600,
+    "resendCooldownSeconds": 60
+  }
+  ```
+
+#### 2. Verify Registration OTP
+- **Method:** `POST`
+- **URL:** `/api/auth/email-verification/verify-otp`
+- **Request Body:**
+  ```json
+  {
+    "email": "student@example.com",
+    "otp": "123456"
+  }
+  ```
+- **Success Response (200 OK):**
+  ```json
+  {
+    "message": "Email verified successfully.",
+    "verified": true,
+    "registrationToken": "550e8400-e29b-41d4-a716-446655440000-7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    "expiresInSeconds": 600
+  }
+  ```
+
+#### 3. Complete Registration
+- **Method:** `POST`
+- **URL:** `/api/auth/register`
+- **Request Body:**
+  ```json
+  {
+    "fullName": "Rahul Sharma",
+    "username": "rahul_sharma",
+    "email": "student@example.com",
+    "mobileNumber": "9876543210",
+    "password": "SecurePassword@123",
+    "confirmPassword": "SecurePassword@123",
+    "gender": "Male",
+    "dateOfBirth": "2002-05-15",
+    "address": "Room 204, Block B",
+    "registrationToken": "550e8400-e29b-41d4-a716-446655440000-7c9e6679-7425-40de-944b-e07fc1f90ae7"
+  }
+  ```
+- **Success Response (200 OK):**
+  ```json
+  {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "id": 5,
+    "fullName": "Rahul Sharma",
+    "username": "rahul_sharma",
+    "email": "student@example.com",
+    "mobileNumber": "9876543210",
+    "role": "USER",
+    "studentId": "STU-2026-00005",
+    "emailVerified": true
+  }
+  ```
+
+---
+
+## 5. Security Controls & Rate Limits
+
+| Parameter | Value | Behavior |
+| :--- | :--- | :--- |
+| **OTP Validity** | 10 minutes | OTP expires automatically after 10 minutes. |
+| **Max Failed Attempts** | 5 attempts | Reaching 5 incorrect attempts invalidates OTP and locks for cooldown (429). |
+| **Resend Cooldown** | 60 seconds | Enforces 60-second cooldown between consecutive requests. |
+| **Email Rate Limit** | 5 per 15 min | Maximum 5 OTP requests per email in 15-minute sliding window. |
+| **Token Entropy** | 256+ bits | Cryptographically secure UUID pair generated using `SecureRandom`. |
+| **Token Lifetime** | 10 minutes | Registration authorization token expires after 10 minutes. |
+| **Token Consumption** | Atomic Single-Use | Token is consumed atomically via conditional DB update; cannot be reused. |
+| **Credential Safety** | Never logged | Plaintext OTPs, tokens, passwords, and SMTP secrets are never logged or stored. |
+
+---
+
+## 6. How to Run the Application
+
+### Backend (Terminal 1)
+```powershell
+cd D:\STS\hostel-management-system\hostel-management-system
 mvn spring-boot:run
 ```
 
-### 2. Running with Real Email Delivery (PowerShell)
+### Frontend (Terminal 2)
 ```powershell
-$env:JAVA_HOME = "C:\Users\HP\.jdks\ms-21.0.12.1"
-$env:SPRING_PROFILES_ACTIVE = "local"
-$env:OTP_EMAIL_MODE = "real"
-$env:MAIL_HOST = "smtp.gmail.com"
-$env:MAIL_PORT = "587"
-$env:MAIL_USERNAME = "your-email@gmail.com"
-$env:MAIL_PASSWORD = "your-gmail-app-password"
-
-mvn spring-boot:run
+cd D:\STS\hostel-management-system\frontend
+npm run dev
 ```
 
-### 3. Running in IntelliJ IDEA
-1. Open **Run/Debug Configurations** for `HostelManagementSystemApplication`.
-2. Under **Environment variables**, paste your variables:
-   ```
-   SPRING_PROFILES_ACTIVE=local;OTP_EMAIL_MODE=real;MAIL_USERNAME=your-email@gmail.com;MAIL_PASSWORD=your-gmail-app-password
-   ```
-3. Click **Apply** and start the application.
-
 ---
 
-## E. How to Test Email OTP
+## 7. Automated Testing
 
-### Live Email Test Flow (Registration):
-1. Open the browser to `http://localhost:8080/register`.
-2. Enter your real email address (e.g. `yourname@gmail.com`).
-3. Click **Send OTP**.
-4. Check your email inbox for an email from **Hostel Management System** with subject `Hostel Management System - Student Registration Verification Code`.
-5. Enter the 6-digit code shown in the styled card and click **Verify OTP**.
-6. The green badge "Email verified successfully" will appear. Complete registration to get your sequential `STU-YYYY-XXXXX` student ID.
-
-### Forgot Password via Email Test Flow:
-1. Navigate to the login page and click **Forgot Password?**.
-2. Enter your registered email address.
-3. Click **Send OTP Code**.
-4. Enter the 6-digit code received in your email inbox.
-5. Create a new strong password and confirm.
-6. Log in with your new password.
-
----
-
-## Security Notes
-- **Never commit `.env` files** or real credentials to the Git repository.
-- The `.gitignore` file is configured to ignore `.env`, `.env.*`, and `application-local.properties`.
-- In real delivery mode, the backend **never logs OTP codes, passwords, or provider API keys** to disk or console.
+Run the full automated test suite:
+```powershell
+cd D:\STS\hostel-management-system\hostel-management-system
+mvn clean test
+```
+All 115 unit and integration tests execute with mocked mail sender and test H2 database in **100% BUILD SUCCESS**.

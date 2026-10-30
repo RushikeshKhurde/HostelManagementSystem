@@ -1,5 +1,6 @@
 package com.hostel.management;
 
+import com.hostel.management.config.DotenvLoader;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,8 @@ public class HostelManagementApplication {
     private String jwtSecret;
 
     public static void main(String[] args) {
+        // Load .env properties before Spring context initialization
+        DotenvLoader.load();
         SpringApplication.run(HostelManagementApplication.class, args);
     }
 

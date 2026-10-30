@@ -23,16 +23,16 @@ public class EmailOtpDeliveryService implements OtpDeliveryService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${app.mail.from:${spring.mail.username:noreply@hostelmanagement.com}}")
+    @Value("${app.mail.from:${MAIL_FROM:${spring.mail.username:${MAIL_USERNAME:noreply@hostelmanagement.com}}}}")
     private String fromEmail;
 
-    @Value("${spring.mail.username:}")
+    @Value("${spring.mail.username:${MAIL_USERNAME:}}")
     private String mailUsername;
 
-    @Value("${spring.mail.password:}")
+    @Value("${spring.mail.password:${MAIL_PASSWORD:}}")
     private String mailPassword;
 
-    @Value("${spring.mail.host:smtp.gmail.com}")
+    @Value("${spring.mail.host:${MAIL_HOST:smtp.gmail.com}}")
     private String mailHost;
 
     @Value("${app.otp.expiry-minutes:5}")

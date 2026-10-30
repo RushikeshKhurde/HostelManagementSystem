@@ -33,6 +33,18 @@ public class FeedbackSubmission {
     @Column(name = "submitted_at", nullable = false, updatable = false)
     private LocalDateTime submittedAt;
 
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "image_path", length = 255)
+    private String imagePath;
+
+    @Column(name = "image_name", length = 255)
+    private String imageName;
+
+    @Column(name = "image_content_type", length = 100)
+    private String imageContentType;
+
     @OneToMany(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     @ToString.Exclude

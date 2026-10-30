@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
@@ -20,10 +20,11 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-export const Login = () => {
+export const Login = ({ initialView }) => {
   const { login, user } = useAuth();
   const { error: toastError, success: toastSuccess } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Login form state
   const [username, setUsername] = useState('');
@@ -32,7 +33,13 @@ export const Login = () => {
   const [errorMessage, setErrorMessage] = useState('');
 
   // Forgot password flow state: 'LOGIN' | 'ENTER_IDENTIFIER' | 'VERIFY_OTP' | 'NEW_PASSWORD' | 'SUCCESS'
-  const [view, setView] = useState('LOGIN');
+  const [view, setView] = useState(() => {
+    if (initialView) return initialView;
+    if (typeof window !== 'undefined' && window.location.pathname.includes('/forgot-password')) {
+      return 'ENTER_IDENTIFIER';
+    }
+    return 'LOGIN';
+  });
   const [identifier, setIdentifier] = useState('');
   const [requestId, setRequestId] = useState('');
   const [destinationMasked, setDestinationMasked] = useState('');
@@ -121,12 +128,14 @@ export const Login = () => {
     e.preventDefault();
     setErrorMessage('');
 
-    if (!identifier.trim()) {
+    const trimmedIdentifier = identifier ? identifier.trim() : '';
+
+    if (!trimmedIdentifier) {
       setErrorMessage('Please enter your registered email address.');
       return;
     }
 
-    if (!identifier.includes('@')) {
+    if (!trimmedIdentifier.includes('@')) {
       setErrorMessage('Please enter a valid email address.');
       return;
     }
@@ -135,12 +144,18 @@ export const Login = () => {
     try {
       const res = await api.post('/auth/forgot-password/request', {
         method: 'EMAIL',
-        identifier: identifier.trim(),
+        identifier: trimmedIdentifier,
       });
 
       const data = res.data;
+      if (!data.requestId) {
+        toastSuccess(data.message || 'If an account exists for the provided information, an OTP has been sent.');
+        setErrorMessage('');
+        return;
+      }
+
       setRequestId(data.requestId || '');
-      setDestinationMasked(data.destinationMasked || identifier.trim());
+      setDestinationMasked(data.destinationMasked || trimmedIdentifier);
       setOtpTimeLeft(data.expiresInSeconds || 300);
       setResendCooldown(data.resendCooldownSeconds || 60);
       setOtp('');
@@ -148,8 +163,9 @@ export const Login = () => {
       toastSuccess(data.message || 'Verification code sent.');
       setView('VERIFY_OTP');
     } catch (err) {
-      setErrorMessage(err.message || 'Failed to send verification code. Please try again.');
-      toastError(err.message || 'Failed to send OTP.');
+      const msg = err.response?.data?.message || err.message || 'Failed to send verification code. Please try again.';
+      setErrorMessage(msg);
+      toastError(msg);
     } finally {
       setLoading(false);
     }
@@ -171,8 +187,9 @@ export const Login = () => {
       setOtp('');
       toastSuccess(data.message || 'A new OTP has been sent.');
     } catch (err) {
-      setErrorMessage(err.message || 'Failed to resend OTP.');
-      toastError(err.message || 'Resend failed.');
+      const msg = err.response?.data?.message || err.message || 'Failed to resend OTP.';
+      setErrorMessage(msg);
+      toastError(msg);
     } finally {
       setLoading(false);
     }
@@ -209,8 +226,9 @@ export const Login = () => {
         setErrorMessage('Verification failed. Please try again.');
       }
     } catch (err) {
-      setErrorMessage(err.message || 'Invalid OTP code.');
-      toastError(err.message || 'Verification failed.');
+      const msg = err.response?.data?.message || err.message || 'Invalid OTP code.';
+      setErrorMessage(msg);
+      toastError(msg);
     } finally {
       setLoading(false);
     }
@@ -246,6 +264,7 @@ export const Login = () => {
     try {
       const res = await api.post('/auth/forgot-password/reset', {
         resetToken,
+        requestId,
         newPassword,
         confirmPassword,
       });
@@ -259,8 +278,9 @@ export const Login = () => {
       toastSuccess(res.data.message || 'Password reset successful!');
       setView('SUCCESS');
     } catch (err) {
-      setErrorMessage(err.message || 'Failed to reset password.');
-      toastError(err.message || 'Password reset failed.');
+      const msg = err.response?.data?.message || err.message || 'Failed to reset password.';
+      setErrorMessage(msg);
+      toastError(msg);
     } finally {
       setLoading(false);
     }

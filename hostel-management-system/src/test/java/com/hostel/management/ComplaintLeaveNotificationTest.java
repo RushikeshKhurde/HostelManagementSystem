@@ -133,6 +133,7 @@ public class ComplaintLeaveNotificationTest {
         req.setTitle("Water heater broken");
         req.setCategory("MAINTENANCE");
         req.setDescription("Hot water is not working in room bathroom since yesterday.");
+        req.setVisibility("WARDEN_AND_ADMIN");
 
         String response = mockMvc.perform(post("/api/complaints")
                         .header("Authorization", "Bearer " + studentToken)

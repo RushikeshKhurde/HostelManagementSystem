@@ -1,6 +1,5 @@
 package com.hostel.management.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,20 +12,22 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ComplaintRequest {
 
-    @NotBlank(message = "Title is required")
-    @Size(min = 3, max = 100, message = "Title must be between 3 and 100 characters")
+    @Size(max = 2000, message = "Feedback cannot exceed 2000 characters")
+    private String feedback;
+
+    @Size(max = 100, message = "Title cannot exceed 100 characters")
     private String title;
 
-    @NotBlank(message = "Category is required")
     @Size(max = 50, message = "Category cannot exceed 50 characters")
     private String category;
 
-    @NotBlank(message = "Description is required")
-    @Size(min = 5, max = 1000, message = "Description must be between 5 and 1000 characters")
+    @Size(max = 5000, message = "Description cannot exceed 5000 characters")
     private String description;
 
     @Size(max = 20, message = "Room number cannot exceed 20 characters")
     private String roomNumber;
 
     private String priority;
+
+    private String visibility;
 }

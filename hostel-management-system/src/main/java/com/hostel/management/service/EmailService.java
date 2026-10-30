@@ -20,19 +20,19 @@ public class EmailService {
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
-    @Value("${app.otp.email.mode:simulation}")
+    @Value("${app.otp.email.mode:${OTP_EMAIL_MODE:real}}")
     private String emailMode;
 
-    @Value("${spring.mail.host:}")
+    @Value("${spring.mail.host:${MAIL_HOST:smtp.gmail.com}}")
     private String mailHost;
 
     @Value("${spring.mail.port:587}")
     private int mailPort;
 
-    @Value("${spring.mail.username:}")
+    @Value("${spring.mail.username:${MAIL_USERNAME:}}")
     private String mailUsername;
 
-    @Value("${spring.mail.password:}")
+    @Value("${spring.mail.password:${MAIL_PASSWORD:}}")
     private String mailPassword;
 
     // For local development / verification testing in simulation mode

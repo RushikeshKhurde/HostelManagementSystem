@@ -55,7 +55,7 @@ export const LeaveManagement = () => {
       setSelectedLeave(null);
       fetchLeaves();
     } catch (err) {
-      toastError(err.message || 'Failed to update leave request');
+      toastError(err.response?.data?.message || err.message || 'Failed to update leave request');
     } finally {
       setSubmitting(false);
     }
